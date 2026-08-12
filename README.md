@@ -43,6 +43,14 @@ npm run dev
 
 App runs at `http://localhost:5173`.
 
+Create `frontend/.env` (see `.env.example`):
+
+```
+VITE_API_URL=http://localhost:5000
+```
+
+On live, set `VITE_API_URL` to your backend URL (no trailing slash), then rebuild.
+
 ## Demo Credentials
 
 | Role        | Email              | Password     |
@@ -74,6 +82,7 @@ Backend `.env` flags:
 
 | Variable | Value | Effect |
 |----------|-------|--------|
+| `FRONTEND_URL` | comma-separated origins | CORS allow-list (e.g. `http://localhost:5173,https://your-app.com`) |
 | `SEED_DUMMY_DATA` | `true` | On Mongo connect, if referrals are empty and wipe flag is not set, seed ~4–5 house referrals per month for the current year and the previous 3 years |
 | `ALLOW_DELETE_ALL` | `true` | Shows **Data Management → Delete All** for Super Admin |
 

@@ -26,10 +26,32 @@ const { ensureSeedDummyReferrals } = require('./seedDummyReferrals')
 const app = express()
 const PORT = process.env.PORT || 5000
 
+function parseAllowedOrigins() {
+  const raw =
+    process.env.FRONTEND_URLS ||
+    process.env.FRONTEND_URL ||
+    'http://localhost:5173,http://localhost:5174,http://localhost:5175'
+
+  return raw
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean)
+}
+
+const allowedOrigins = parseAllowedOrigins()
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin(origin, callback) {
+      // Allow non-browser tools (no Origin) and configured frontends
+      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        return callback(null, true)
+      }
+      return callback(new Error(`CORS blocked for origin: ${origin}`))
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 )
 app.use(express.json())

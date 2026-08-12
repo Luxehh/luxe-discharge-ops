@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { apiRequest } from '../utils/api'
 
 const AuthContext = createContext(null)
-
-const API_URL = import.meta.env.VITE_API_URL || ''
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -24,17 +23,10 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = async (email, password) => {
-    const res = await fetch(`${API_URL}/api/auth/login`, {
+    const data = await apiRequest('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     })
-
-    const data = await res.json()
-
-    if (!res.ok) {
-      throw new Error(data.message || 'Login failed')
-    }
 
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))
