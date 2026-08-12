@@ -26,35 +26,53 @@ const { ensureSeedDummyReferrals } = require('./seedDummyReferrals')
 const app = express()
 const PORT = process.env.PORT || 5000
 
-function parseAllowedOrigins() {
-  const raw =
-    process.env.FRONTEND_URLS ||
-    process.env.FRONTEND_URL ||
-    'http://localhost:5173,http://localhost:5174,http://localhost:5175,https://luxe-discharge-ops-production.up.railway.app,https://luxe-discharge-ops-server-production.up.railway.app'
+const DEFAULT_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'https://luxe-discharge-ops-production.up.railway.app',
+]
 
-  return raw
+function parseAllowedOrigins() {
+  const fromEnv = String(
+    process.env.FRONTEND_URLS || process.env.FRONTEND_URL || ''
+  )
     .split(',')
     .map((origin) => origin.trim().replace(/\/$/, ''))
     .filter(Boolean)
+
+  return [...new Set([...DEFAULT_ORIGINS, ...fromEnv])]
 }
 
 const allowedOrigins = parseAllowedOrigins()
+const allowAllOrigins =
+  String(process.env.CORS_ALLOW_ALL || '').toLowerCase() === 'true'
 
 app.use(
   cors({
     origin(origin, callback) {
-      // Allow non-browser tools (no Origin) and configured frontends
-      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      // Non-browser clients (curl, Railway healthchecks) send no Origin
+      if (!origin || allowAllOrigins || allowedOrigins.includes('*')) {
         return callback(null, true)
       }
-      return callback(new Error(`CORS blocked for origin: ${origin}`))
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true)
+      }
+      console.warn(`CORS blocked origin: ${origin}`)
+      // Do not throw — throwing becomes a 500 without CORS headers
+      return callback(null, false)
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 204,
   })
 )
 app.use(express.json())
+
+console.log(
+  `CORS origins: ${allowAllOrigins ? '* (CORS_ALLOW_ALL)' : allowedOrigins.join(', ')}`
+)
 
 app.get('/api/health', (_req, res) => {
   res.json({
