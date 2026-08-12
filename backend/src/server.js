@@ -30,7 +30,7 @@ const DEFAULT_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
-  'https://luxe-discharge-ops-production.up.railway.app',
+  'https://luxe-score-ops-production.up.railway.app',
 ]
 
 function parseAllowedOrigins() {
