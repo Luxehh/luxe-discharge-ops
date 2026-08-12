@@ -30,7 +30,7 @@ function parseAllowedOrigins() {
   const raw =
     process.env.FRONTEND_URLS ||
     process.env.FRONTEND_URL ||
-    'http://localhost:5173,http://localhost:5174,http://localhost:5175'
+    'http://localhost:5173,http://localhost:5174,http://localhost:5175,https://luxe-discharge-ops-production.up.railway.app,https://luxe-discharge-ops-server-production.up.railway.app'
 
   return raw
     .split(',')
