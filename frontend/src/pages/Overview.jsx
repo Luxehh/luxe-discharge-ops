@@ -171,7 +171,7 @@ export default function Overview() {
               <div
                 className="px-4 py-3 text-white"
                 style={{
-                  background: 'linear-gradient(135deg, #7A5A0B, var(--gold))',
+                  background: 'linear-gradient(135deg, #5a5539, #6e6847)',
                 }}
               >
                 <h3 className="font-bold text-[17px] leading-tight">{loc.name}</h3>

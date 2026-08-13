@@ -1,7 +1,7 @@
 {
   "name": "luxe-discharge-backend",
   "version": "1.0.0",
-  "description": "Discharge Ops API",
+  "description": "Luxe Score API",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

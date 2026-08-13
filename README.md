@@ -1,4 +1,4 @@
-# Discharge Ops
+# Luxe Score
 
 MERN stack multi-location discharge tracking application.
 

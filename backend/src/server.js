@@ -77,7 +77,7 @@ console.log(
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
-    service: 'Discharge Ops API',
+    service: 'Luxe Score API',
     database: db.isConnected() ? 'connected' : 'demo-mode',
   })
 })

@@ -5,6 +5,9 @@ import BrandLogo from '../components/BrandLogo'
 import PasswordInput from '../components/PasswordInput'
 import { homePathForUser } from '../utils/roles'
 
+const fieldClass =
+  'w-full rounded-md border border-[#d0d0d0] px-3.5 py-2.5 text-[14px] text-luxe-text outline-none placeholder:text-[#999] focus:border-luxe-btn focus:ring-1 focus:ring-luxe-btn'
+
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -29,28 +32,28 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-navy flex items-center justify-center p-4">
-      <div className="w-full max-w-[420px] bg-white rounded-2xl shadow-xl px-8 py-8 sm:px-10 sm:py-9">
-        <div className="flex items-center gap-3 mb-8">
-          <BrandLogo size="lg" />
-          <div>
-            <h1 className="text-[22px] font-bold text-gray-900 leading-tight">
-              Discharge Ops
-            </h1>
-            <p className="text-sm text-gray-400 mt-0.5">
-              Multi-location discharge tracking
-            </p>
+    <div className="flex min-h-screen items-center justify-center bg-luxe-gray px-4 py-10">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-[440px] overflow-hidden rounded-lg bg-white shadow-luxe-card"
+      >
+        <div className="px-5 pt-7 pb-6 sm:px-8 sm:pt-8">
+          <div className="mb-5 flex justify-center">
+            <BrandLogo size="lg" />
           </div>
-        </div>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-1">Sign in</h2>
-        <p className="text-sm text-gray-500 mb-6">
-          Use your location credentials to access the dashboard.
-        </p>
+          <h1 className="text-[20px] font-bold tracking-tight text-luxe-text sm:text-[22px]">
+            Login
+          </h1>
+          <p className="mt-3 text-[13px] leading-relaxed text-luxe-muted">
+            Multi-location discharge tracking
+          </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+          <div className="mt-7">
+            <label
+              htmlFor="email"
+              className="mb-2 block text-[13px] font-semibold text-luxe-text"
+            >
               Email
             </label>
             <input
@@ -58,15 +61,18 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@rms.com"
+              placeholder="e.g. illinois@luxehh.com"
               required
-              autoComplete="email"
-              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy transition"
+              autoComplete="username"
+              className={fieldClass}
             />
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+          <div className="mt-5">
+            <label
+              htmlFor="password"
+              className="mb-2 block text-[13px] font-semibold text-luxe-text"
+            >
               Password
             </label>
             <PasswordInput
@@ -75,24 +81,28 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
+              placeholder="Password"
+              className={fieldClass}
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          {error ? (
+            <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-[13px] text-red-700">
               {error}
             </p>
-          )}
+          ) : null}
+        </div>
 
+        <div className="flex justify-end border-t border-[#eee] bg-luxe-footer px-5 py-4 sm:px-8">
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-navy hover:bg-navy-dark disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition mt-2"
+            className="w-full rounded-md bg-luxe-btn px-5 py-2.5 text-[14px] font-semibold text-white transition hover:bg-luxe-olive-dark disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto sm:py-2"
           >
-            {submitting ? 'Signing in...' : 'Sign in'}
+            {submitting ? 'Signing In...' : 'Sign In'}
           </button>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   )
 }

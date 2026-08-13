@@ -3,7 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --gold: #B8860B;
+  --gold: #6e6847;
+  --luxe-olive: #6e6847;
+  --luxe-olive-dark: #5a5539;
+  --luxe-beige: #f2ede4;
+  --luxe-gray: #8e949a;
+  --luxe-btn: #706c4f;
+  --luxe-text: #333333;
+  --luxe-muted: #666666;
+  --luxe-footer: #f8f8f8;
+  --luxe-page: #f5f4f1;
+  --luxe-border: #e5e1d8;
 }
 
 * {
@@ -18,7 +28,9 @@ body,
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'DM Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  color: var(--luxe-text);
+  background: var(--luxe-page);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

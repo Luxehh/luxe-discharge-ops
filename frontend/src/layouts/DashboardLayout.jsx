@@ -37,7 +37,7 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className="dashboard-shell h-screen flex flex-col bg-gray-100 overflow-hidden print:h-auto print:overflow-visible print:bg-white">
+    <div className="dashboard-shell h-screen flex flex-col bg-luxe-page overflow-hidden print:h-auto print:overflow-visible print:bg-white">
       <Header
         user={user}
         onLogout={handleLogout}

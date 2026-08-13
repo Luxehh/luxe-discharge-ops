@@ -28,12 +28,12 @@ import {
 } from '../utils/comparisonPeriods'
 import { pctLabel } from '../utils/funnelStats'
 
-const FUNNEL_COLORS = ['#D4B483', '#B8860B', '#8B6914', '#6B4F0A']
+const FUNNEL_COLORS = ['#c5bfa3', '#8a845f', '#6e6847', '#5a5539']
 const ACCEPT_COLORS = ['#A7C4A0', '#2F6B4F', '#1E4D38', '#0F3324']
 const NOT_ADMIT_COLORS = ['#7DB8B0', '#2A7A72', '#1A5A54', '#0F3D39']
 const TYPE_COLORS = {
   green: '#2F6B4F',
-  yellow: '#B8860B',
+  yellow: '#8a845f',
   red: '#B4534A',
 }
 
@@ -500,7 +500,7 @@ export default function ComparisonTrends() {
   return (
     <PageShell
       title="Comparison & Trends"
-      subtitle="Compare the latest period against the one before it — company-wide or for a single house."
+      subtitle="Compare the latest period against the one before it — all locations or for a single house."
       bare
       actions={
         <div className="flex flex-wrap items-center gap-2 print:hidden" data-print-hide>
@@ -554,7 +554,7 @@ export default function ComparisonTrends() {
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-[#B8860B] hover:bg-[#9a7209] text-white rounded-lg transition"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-luxe-btn hover:bg-luxe-olive-dark text-white rounded-lg transition"
           >
             <svg
               className="w-4 h-4"

@@ -74,6 +74,10 @@ export default function PasswordInput({
 }) {
   const [visible, setVisible] = useState(false)
 
+  const inputClass =
+    className ||
+    'w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy transition'
+
   return (
     <div className="relative">
       <input
@@ -84,12 +88,13 @@ export default function PasswordInput({
         required={required}
         autoComplete={autoComplete}
         placeholder={placeholder}
-        className={`w-full px-3.5 py-2.5 pr-11 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy transition ${className}`}
+        className={`${inputClass} pr-11`}
       />
       <div className="absolute inset-y-0 right-0 flex items-center pr-2.5">
         <PasswordEyeButton
           visible={visible}
           onToggle={() => setVisible((v) => !v)}
+          className="text-luxe-muted hover:text-luxe-olive hover:bg-transparent"
         />
       </div>
     </div>

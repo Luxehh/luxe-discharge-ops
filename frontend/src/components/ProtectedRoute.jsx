@@ -6,8 +6,8 @@ export default function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-navy flex items-center justify-center">
-        <div className="text-white text-lg">Loading...</div>
+      <div className="min-h-screen bg-luxe-page flex items-center justify-center">
+        <div className="text-luxe-muted text-lg">Loading...</div>
       </div>
     )
   }

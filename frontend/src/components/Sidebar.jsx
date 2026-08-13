@@ -149,18 +149,18 @@ export default function Sidebar({ open, onClose, isSuperAdmin, allowDeleteAll = 
         className={`
           print:hidden
           fixed lg:static inset-y-0 left-0 z-50
-          w-64 bg-cream border-r border-gray-200
+          w-64 bg-white border-r border-luxe-border
           transform transition-transform duration-200 ease-in-out
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           flex flex-col
         `}
       >
-        <div className="flex items-center justify-between px-4 py-3 lg:hidden border-b border-gray-200">
-          <span className="text-sm font-semibold text-gray-700">Menu</span>
+        <div className="flex items-center justify-between px-4 py-3 lg:hidden border-b border-luxe-border">
+          <span className="text-sm font-semibold text-luxe-text">Menu</span>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-md text-gray-500 hover:bg-gray-200"
+            className="p-2 rounded-md text-luxe-muted hover:bg-luxe-beige"
             aria-label="Close menu"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -170,7 +170,7 @@ export default function Sidebar({ open, onClose, isSuperAdmin, allowDeleteAll = 
         </div>
 
         <nav className="flex-1 px-3 py-5 overflow-y-auto">
-          <p className="px-3 mb-3 text-[11px] font-semibold tracking-wider text-gray-400 uppercase">
+          <p className="px-3 mb-3 text-[11px] font-semibold tracking-wider text-luxe-muted uppercase">
             Menu
           </p>
           <ul className="space-y-1">
@@ -186,8 +186,8 @@ export default function Sidebar({ open, onClose, isSuperAdmin, allowDeleteAll = 
                         : isActive
                     return `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
                       active
-                        ? 'bg-cream-soft text-gold-dark'
-                        : 'text-gray-700 hover:bg-white/70'
+                        ? 'bg-luxe-beige text-luxe-olive'
+                        : 'text-luxe-text hover:bg-luxe-page'
                     }`
                   }}
                 >
