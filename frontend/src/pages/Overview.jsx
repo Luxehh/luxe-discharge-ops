@@ -128,8 +128,9 @@ export default function Overview() {
   return (
     <PageShell
       title="Overview"
-      subtitle="Discharge funnel — not able to accept, able to accept, accepted and not admitted, broken out by insurance."
+      subtitle="Discharge funnel — not able to accept, able to accept, received/accepted and not admitted, broken out by insurance."
       bare
+      fullWidth
       actions={
         <OverviewToolbar
           period={period}
@@ -161,12 +162,12 @@ export default function Overview() {
       )}
 
       {!loading && !error && locations.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
           {locations.map((loc) => (
             <Link
               key={loc.name}
               to={`/overview/${encodeURIComponent(loc.name)}?${query}`}
-              className="rounded-xl overflow-hidden bg-white shadow-md hover:shadow-lg transition block"
+              className="rounded-xl overflow-hidden bg-white shadow-md hover:shadow-lg transition block min-w-0"
             >
               <div
                 className="px-4 py-3 text-white"
@@ -176,23 +177,23 @@ export default function Overview() {
               >
                 <h3 className="font-bold text-[17px] leading-tight">{loc.name}</h3>
                 <p className="text-[13px] text-white/90 mt-0.5">
-                  {loc.houses} {loc.houses === 1 ? 'house' : 'houses'}
+                  {loc.houses} {loc.houses === 1 ? 'Facility' : 'Facilities'}
                 </p>
               </div>
-              <div className="grid grid-cols-2 px-2 py-3.5">
-                <div className="text-center px-1">
+              <div className="grid grid-cols-2 gap-2 px-3 py-3.5">
+                <div className="text-center min-w-0">
                   <p className="text-[22px] font-bold text-gray-900 leading-none">
                     {loc.accepted}
                   </p>
-                  <p className="text-[10px] text-gray-500 mt-1.5 uppercase tracking-wide whitespace-nowrap">
-                    Accepted · {pctLabel(loc.accepted, loc.able)}
+                  <p className="text-[11px] text-gray-500 mt-1.5 whitespace-nowrap">
+                    Received/Accepted · {pctLabel(loc.accepted, loc.able)}
                   </p>
                 </div>
-                <div className="text-center px-1">
+                <div className="text-center min-w-0">
                   <p className="text-[22px] font-bold text-gray-900 leading-none">
                     {loc.notAdmitted}
                   </p>
-                  <p className="text-[10px] text-gray-500 mt-1.5 uppercase tracking-wide whitespace-nowrap">
+                  <p className="text-[11px] text-gray-500 mt-1.5 whitespace-nowrap">
                     Not Admitted · {pctLabel(loc.notAdmitted, loc.accepted)}
                   </p>
                 </div>

@@ -28,7 +28,7 @@ export default function Header({ user, onLogout, onMenuToggle }) {
           <BrandLogo size="sm" />
           <div className="min-w-0">
             <h1 className="text-base sm:text-lg font-semibold font-serif leading-tight truncate text-luxe-text">
-              Luxe Score
+              Luxe Score Card
             </h1>
           </div>
         </div>

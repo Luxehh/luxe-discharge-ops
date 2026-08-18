@@ -84,7 +84,7 @@ export default function ReferralView() {
   return (
     <PageShell
       title="Overview"
-      subtitle="Discharge funnel — not able to accept, able to accept, accepted and not admitted, broken out by insurance."
+      subtitle="Discharge funnel — not able to accept, able to accept, received/accepted and not admitted, broken out by insurance."
       actions={
         <button
           type="button"

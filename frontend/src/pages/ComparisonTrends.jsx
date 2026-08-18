@@ -30,7 +30,6 @@ import { pctLabel } from '../utils/funnelStats'
 
 const FUNNEL_COLORS = ['#c5bfa3', '#8a845f', '#6e6847', '#5a5539']
 const ACCEPT_COLORS = ['#A7C4A0', '#2F6B4F', '#1E4D38', '#0F3324']
-const NOT_ADMIT_COLORS = ['#7DB8B0', '#2A7A72', '#1A5A54', '#0F3D39']
 const TYPE_COLORS = {
   green: '#2F6B4F',
   yellow: '#8a845f',
@@ -42,7 +41,7 @@ const FUNNEL_METRICS = [
   { key: 'dischargeWithHomeHealth', label: 'DC w/ HH' },
   { key: 'notAble', label: 'Not Accept' },
   { key: 'able', label: 'Able Accept' },
-  { key: 'accepted', label: 'Accepted' },
+  { key: 'accepted', label: 'Received/Accepted' },
   { key: 'notAdmitted', label: 'Not Admitted' },
 ]
 
@@ -146,6 +145,46 @@ function KpiCard({ label, value, suffix, trend }) {
         ) : null}
       </p>
       {trend}
+    </div>
+  )
+}
+
+function QuietCircleChart({ title, value, total, color, centerLabel }) {
+  const safeTotal = Math.max(Number(total) || 0, Number(value) || 0, 1)
+  const filled = Math.max(0, Number(value) || 0)
+  const rest = Math.max(0, safeTotal - filled)
+  const data = [
+    { name: 'filled', value: filled || 0.0001 },
+    { name: 'rest', value: rest || 0.0001 },
+  ]
+  const pct = pctLabel(filled, safeTotal)
+
+  return (
+    <div className="flex flex-col items-center">
+      <p className="text-sm font-semibold text-luxe-text mb-2">{title}</p>
+      <div className="relative w-full h-56 sm:h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              startAngle={90}
+              endAngle={-270}
+              innerRadius="68%"
+              outerRadius="88%"
+              stroke="none"
+              paddingAngle={0}
+            >
+              <Cell fill={color} />
+              <Cell fill="#e8e4db" />
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <p className="text-3xl font-bold text-luxe-text leading-none">{filled}</p>
+          <p className="text-xs text-luxe-muted mt-1">{centerLabel || pct}</p>
+        </div>
+      </div>
     </div>
   )
 }
@@ -389,16 +428,6 @@ export default function ComparisonTrends() {
     })
   }, [insuranceNames, chartPeriodMetrics])
 
-  const notAdmittedByInsurance = useMemo(() => {
-    return insuranceNames.map((name) => {
-      const row = { name }
-      chartPeriodMetrics.forEach((period) => {
-        row[period.key] = period.metrics.byInsurance[name]?.notAdmitted || 0
-      })
-      return row
-    })
-  }, [insuranceNames, chartPeriodMetrics])
-
   const trendData = useMemo(() => {
     // Always show monthly points across the selected chart window months
     const monthSet = new Set()
@@ -410,54 +439,35 @@ export default function ComparisonTrends() {
         new Set([month]),
         insuranceTypeById
       )
-      const { able, accepted, notAdmitted } = metrics
+      const { able, accepted } = metrics
       return {
         name: formatMonthShort(month),
         able,
         accepted,
-        notAdmitted,
         ableLabel: `${able} (${pctLabel(able, able)})`,
         acceptedLabel: `${accepted} (${pctLabel(accepted, able)})`,
-        notAdmittedLabel: `${notAdmitted} (${pctLabel(notAdmitted, accepted)})`,
       }
     })
   }, [chartPeriods, filteredReferrals, insuranceTypeById])
 
-  const medicareTrendData = useMemo(() => {
-    const monthSet = new Set()
-    chartPeriods.forEach((p) => p.months.forEach((m) => monthSet.add(m)))
-    const months = Array.from(monthSet).sort()
+  const circleMetrics = useMemo(() => {
+    const able = Number(current.able) || 0
+    const accepted = Number(current.accepted) || 0
+    const dischargeWithHomeHealth = Number(current.dischargeWithHomeHealth) || 0
+    // Received/Accepted rate of Able; >= 70% → green, otherwise red
+    const acceptanceRate = able > 0 ? (accepted / able) * 100 : 0
+    const isGreen = acceptanceRate >= 70
+    const color = isGreen ? '#2F6B4F' : '#B42318'
 
-    return months.map((month) => {
-      let totalAble = 0
-      let able = 0
-      let accepted = 0
-      let notAdmitted = 0
-
-      filteredReferrals.forEach((ref) => {
-        if (ref.month !== month) return
-        ;(ref.ableToAccept || []).forEach((row) => {
-          const count = Number(row.count) || 0
-          totalAble += count
-          const name = (row.insuranceName || '').toLowerCase()
-          if (!name.includes('medicare')) return
-          able += count
-          accepted += Number(row.accepted) || 0
-          notAdmitted += Number(row.notAdmitted) || 0
-        })
-      })
-
-      return {
-        name: formatMonthShort(month),
-        able,
-        accepted,
-        notAdmitted,
-        ableLabel: `${able} (${pctLabel(able, totalAble)})`,
-        acceptedLabel: `${accepted} (${pctLabel(accepted, able)})`,
-        notAdmittedLabel: `${notAdmitted} (${pctLabel(notAdmitted, accepted)})`,
-      }
-    })
-  }, [chartPeriods, filteredReferrals])
+    return {
+      able,
+      accepted,
+      dischargeWithHomeHealth: Math.max(dischargeWithHomeHealth, able),
+      acceptanceRate,
+      color,
+      isGreen,
+    }
+  }, [current])
 
   const typeMixData = useMemo(() => {
     const monthKey = typeMixMonth || latestDataMonth
@@ -634,7 +644,7 @@ export default function ComparisonTrends() {
               }
             />
             <KpiCard
-              label="Accepted"
+              label="Received/Accepted"
               value={current.accepted}
               suffix={`(${pctLabel(current.accepted, current.able)})`}
               trend={
@@ -707,7 +717,7 @@ export default function ComparisonTrends() {
           </ChartCard>
 
           <ChartCard
-            title="Accepted by insurance"
+            title="Received/Accepted by insurance"
             filter={
               <RangeSelect
                 value={chartRange}
@@ -744,45 +754,7 @@ export default function ComparisonTrends() {
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard
-            title="Not Admitted by insurance"
-            filter={
-              <RangeSelect
-                value={chartRange}
-                onChange={setChartRange}
-                options={rangeOptions.map((o) => ({
-                  value: o.value,
-                  label: chartRangeLabel(periodType, o.value),
-                }))}
-              />
-            }
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={notAdmittedByInsurance}
-                barGap={4}
-                barCategoryGap="18%"
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
-                <Legend />
-                {chartPeriodMetrics.map((period, index) => (
-                  <Bar
-                    key={period.key}
-                    dataKey={period.key}
-                    name={period.label}
-                    fill={NOT_ADMIT_COLORS[index % NOT_ADMIT_COLORS.length]}
-                    radius={[4, 4, 0, 0]}
-                    label={{ position: 'top', fontSize: 10 }}
-                  />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          <ChartCard title="Able to Accept, Accepted & Not Admitted — Trend">
+          <ChartCard title="Able to Accept, Received/Accepted — Trend">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={trendData}
@@ -796,8 +768,9 @@ export default function ComparisonTrends() {
                     const row = item?.payload
                     if (!row) return [value, name]
                     if (name?.includes('Able to Accept')) return [row.ableLabel, name]
-                    if (name?.includes('Accepted (%')) return [row.acceptedLabel, name]
-                    if (name?.includes('Not Admitted')) return [row.notAdmittedLabel, name]
+                    if (name?.includes('Received/Accepted') || name?.includes('Accepted')) {
+                      return [row.acceptedLabel, name]
+                    }
                     return [value, name]
                   }}
                 />
@@ -824,7 +797,7 @@ export default function ComparisonTrends() {
                 <Line
                   type="monotone"
                   dataKey="accepted"
-                  name="Accepted (% of able)"
+                  name="Received/Accepted (% of able)"
                   stroke="#2F6B4F"
                   strokeWidth={2}
                   dot={{ r: 3, fill: '#2F6B4F' }}
@@ -834,99 +807,50 @@ export default function ComparisonTrends() {
                     dataKey="acceptedLabel"
                     position="top"
                     style={{ fill: '#2F6B4F', fontSize: 10, fontWeight: 600 }}
-                  />
-                </Line>
-                <Line
-                  type="monotone"
-                  dataKey="notAdmitted"
-                  name="Not Admitted (% of accepted)"
-                  stroke="#2A7A72"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: '#2A7A72' }}
-                  activeDot={{ r: 5 }}
-                >
-                  <LabelList
-                    dataKey="notAdmittedLabel"
-                    position="top"
-                    style={{ fill: '#2A7A72', fontSize: 10, fontWeight: 600 }}
                   />
                 </Line>
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard title="Medicare — Able to Accept, Accepted & Not Admitted">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={medicareTrendData}
-                margin={{ top: 28, right: 16, left: 0, bottom: 4 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip
-                  formatter={(value, name, item) => {
-                    const row = item?.payload
-                    if (!row) return [value, name]
-                    if (name?.includes('Able to Accept')) return [row.ableLabel, name]
-                    if (name?.includes('Accepted (%')) return [row.acceptedLabel, name]
-                    if (name?.includes('Not Admitted')) return [row.notAdmittedLabel, name]
-                    return [value, name]
-                  }}
-                />
-                <Legend
-                  verticalAlign="top"
-                  align="center"
-                  wrapperStyle={{ paddingBottom: 12, fontSize: 12 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="able"
-                  name="Able to Accept (% of total able)"
-                  stroke="#E09A2B"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: '#E09A2B' }}
-                  activeDot={{ r: 5 }}
+          <section className="bg-white rounded-xl border border-gray-200 shadow-md p-4 sm:p-5 break-inside-avoid">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+              <h3 className="text-base font-bold text-gray-900">
+                Able to Accept & Received/Accepted
+              </h3>
+              <p className="text-xs text-luxe-muted">
+                Color: green if Received/Accepted ≥ 70% of Able, otherwise red
+                {' · '}
+                Current rate{' '}
+                <span
+                  className={`font-semibold ${
+                    circleMetrics.isGreen ? 'text-emerald-700' : 'text-red-700'
+                  }`}
                 >
-                  <LabelList
-                    dataKey="ableLabel"
-                    position="top"
-                    style={{ fill: '#E09A2B', fontSize: 10, fontWeight: 600 }}
-                  />
-                </Line>
-                <Line
-                  type="monotone"
-                  dataKey="accepted"
-                  name="Accepted (% of able)"
-                  stroke="#2F6B4F"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: '#2F6B4F' }}
-                  activeDot={{ r: 5 }}
-                >
-                  <LabelList
-                    dataKey="acceptedLabel"
-                    position="top"
-                    style={{ fill: '#2F6B4F', fontSize: 10, fontWeight: 600 }}
-                  />
-                </Line>
-                <Line
-                  type="monotone"
-                  dataKey="notAdmitted"
-                  name="Not Admitted (% of accepted)"
-                  stroke="#2A7A72"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: '#2A7A72' }}
-                  activeDot={{ r: 5 }}
-                >
-                  <LabelList
-                    dataKey="notAdmittedLabel"
-                    position="top"
-                    style={{ fill: '#2A7A72', fontSize: 10, fontWeight: 600 }}
-                  />
-                </Line>
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
+                  {circleMetrics.acceptanceRate.toFixed(1)}%
+                </span>
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <QuietCircleChart
+                title="Able to Accept"
+                value={circleMetrics.able}
+                total={circleMetrics.dischargeWithHomeHealth}
+                color={circleMetrics.color}
+                centerLabel={pctLabel(
+                  circleMetrics.able,
+                  circleMetrics.dischargeWithHomeHealth
+                )}
+              />
+              <QuietCircleChart
+                title="Received/Accepted"
+                value={circleMetrics.accepted}
+                total={Math.max(circleMetrics.able, 1)}
+                color={circleMetrics.color}
+                centerLabel={pctLabel(circleMetrics.accepted, circleMetrics.able)}
+              />
+            </div>
+          </section>
 
           <ChartCard
             title="Insurance Type Mix"
@@ -973,7 +897,7 @@ export default function ComparisonTrends() {
                   dominantBaseline="middle"
                   className="fill-gray-700 text-sm font-semibold"
                 >
-                  {typeMixTotal} Total accepted
+                  {typeMixTotal} Total received/accepted
                 </text>
               </PieChart>
             </ResponsiveContainer>

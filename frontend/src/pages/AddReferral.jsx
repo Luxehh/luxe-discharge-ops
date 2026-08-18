@@ -662,7 +662,7 @@ export default function AddReferral() {
 
             {splitMismatch && (
               <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-                Accepted + Not Admitted must equal Able to Accept for each
+                Received/Accepted + Not Admitted must equal Able to Accept for each
                 insurance. Fix the counts below before saving.
               </div>
             )}
@@ -671,7 +671,7 @@ export default function AddReferral() {
               {/* Accepted */}
               <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 bg-slate-100 border-b border-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-800">Accepted</h3>
+                  <h3 className="text-sm font-semibold text-gray-800">Received/Accepted</h3>
                   <span className="text-sm font-semibold text-gray-500">
                     {acceptedTotal}
                   </span>

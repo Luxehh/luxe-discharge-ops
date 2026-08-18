@@ -140,8 +140,9 @@ export default function OverviewLocation() {
   return (
     <PageShell
       title="Overview"
-      subtitle="Discharge funnel — not able to accept, able to accept, accepted and not admitted, broken out by insurance."
+      subtitle="Discharge funnel — not able to accept, able to accept, received/accepted and not admitted, broken out by insurance."
       bare
+      fullWidth
       actions={
         <OverviewToolbar
           period={period}
@@ -186,16 +187,16 @@ export default function OverviewLocation() {
       )}
 
       {!loading && !error && houseCards.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
           {houseCards.map((house) => {
             const isComingSoon = house.status === 'Coming Soon'
             const isDisabled = isComingSoon || !house.hasEntry
 
-            if (isDisabled) {
+            if (isComingSoon) {
               return (
                 <div
                   key={house.id}
-                  className="rounded-xl overflow-hidden bg-white shadow-md block cursor-not-allowed opacity-95"
+                  className="rounded-xl overflow-hidden bg-white shadow-md block cursor-not-allowed opacity-95 min-w-0"
                   aria-disabled="true"
                 >
                   <div className="bg-gray-400 px-4 py-3 text-white">
@@ -215,30 +216,52 @@ export default function OverviewLocation() {
               )
             }
 
+            if (isDisabled) {
+              return (
+                <div
+                  key={house.id}
+                  className="rounded-xl overflow-hidden bg-white shadow-md block cursor-not-allowed opacity-95 min-w-0"
+                  aria-disabled="true"
+                >
+                  <div className="bg-gray-400 px-4 py-3 text-white">
+                    <h3 className="font-bold text-[17px] leading-tight">
+                      {house.name}
+                    </h3>
+                    <p className="text-[13px] text-white/90 mt-0.5">
+                      {house.location}
+                    </p>
+                  </div>
+                  <div className="px-4 py-8 text-center text-sm text-gray-400">
+                    {emptyLabel}
+                  </div>
+                </div>
+              )
+            }
+
             return (
               <Link
                 key={house.id}
                 to={`/overview/${encodeURIComponent(location)}/${house.id}?${query}`}
-                className="rounded-xl overflow-hidden bg-white shadow-md hover:shadow-lg transition block"
+                className="rounded-xl overflow-hidden bg-white shadow-md hover:shadow-lg transition block min-w-0"
               >
                 <div className="bg-navy px-4 py-3 text-white">
                   <h3 className="font-bold text-[17px] leading-tight">{house.name}</h3>
                   <p className="text-[13px] text-white/75 mt-0.5">{house.location}</p>
                 </div>
-                <div className="grid grid-cols-2 px-2 py-3.5">
-                  <div className="text-center px-1">
+                <div className="grid grid-cols-2 gap-2 px-3 py-3.5">
+                  <div className="text-center min-w-0">
                     <p className="text-[22px] font-bold text-gray-900 leading-none">
                       {house.accepted}
                     </p>
-                    <p className="text-[10px] text-gray-500 mt-1.5 uppercase tracking-wide whitespace-nowrap">
-                      Accepted · {pctLabel(house.accepted, house.able)}
+                    <p className="text-[11px] text-gray-500 mt-1.5 whitespace-nowrap">
+                      Received/Accepted · {pctLabel(house.accepted, house.able)}
                     </p>
                   </div>
-                  <div className="text-center px-1">
+                  <div className="text-center min-w-0">
                     <p className="text-[22px] font-bold text-gray-900 leading-none">
                       {house.notAdmitted}
                     </p>
-                    <p className="text-[10px] text-gray-500 mt-1.5 uppercase tracking-wide whitespace-nowrap">
+                    <p className="text-[11px] text-gray-500 mt-1.5 whitespace-nowrap">
                       Not Admitted · {pctLabel(house.notAdmitted, house.accepted)}
                     </p>
                   </div>

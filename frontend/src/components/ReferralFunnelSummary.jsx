@@ -252,7 +252,7 @@ export default function ReferralFunnelSummary({
           subWhole={dischargeWithHomeHealth}
         />
         <SummaryCard
-          label="Accepted"
+          label="Received/Accepted"
           value={acceptedTotal}
           subPart={acceptedTotal}
           subWhole={ableTotal}
@@ -299,7 +299,7 @@ export default function ReferralFunnelSummary({
           }}
         />
         <SectionTable
-          title="Accepted"
+          title="Received/Accepted"
           total={acceptedTotal}
           totalRatePart={acceptedTotal}
           totalRateWhole={ableTotal}

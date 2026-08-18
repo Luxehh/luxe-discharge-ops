@@ -7,7 +7,7 @@ export default function PageShell({
   fullWidth = false,
   contentClassName = '',
 }) {
-  const widthClass = fullWidth ? 'w-full' : 'w-full max-w-5xl'
+  const widthClass = fullWidth ? 'w-full max-w-7xl' : 'w-full max-w-5xl'
 
   return (
     <div className={`flex flex-col ${fullWidth ? '' : 'items-center'}`}>
