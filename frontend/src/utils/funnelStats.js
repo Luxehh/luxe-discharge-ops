@@ -46,8 +46,6 @@ export function mergeReferrals(referrals) {
         notAbleMap.set(key, {
           reasonId: row.reasonId || '',
           reasonName: row.reasonName || '',
-          categoryId: row.categoryId || '',
-          categoryName: row.categoryName || '',
           count: Number(row.count) || 0,
         })
       }

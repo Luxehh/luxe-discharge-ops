@@ -8,7 +8,6 @@ const usersStore = require('./data/usersStore')
 const { JWT_SECRET } = require('./middleware/auth')
 const db = require('./db')
 const loginsRoutes = require('./routes/logins')
-const categoriesRoutes = require('./routes/categories')
 const reasonsRoutes = require('./routes/reasons')
 const insuranceTypesRoutes = require('./routes/insuranceTypes')
 const insurancesRoutes = require('./routes/insurances')
@@ -17,7 +16,7 @@ const referralsRoutes = require('./routes/referrals')
 const adminRoutes = require('./routes/admin')
 const {
   ensureSeedUsers,
-  ensureSeedCategories,
+  ensureSeedReasons,
   ensureSeedInsurances,
   ensureSeedHouses,
 } = require('./seedMasterData')
@@ -188,7 +187,6 @@ app.get('/api/auth/me', (req, res) => {
 })
 
 app.use('/api/logins', loginsRoutes)
-app.use('/api/categories', categoriesRoutes)
 app.use('/api/reasons', reasonsRoutes)
 app.use('/api/insurance-types', insuranceTypesRoutes)
 app.use('/api/insurances', insurancesRoutes)
@@ -207,7 +205,7 @@ function tryConnectMongo() {
       db.setConnected(true)
       console.log('MongoDB connected')
       await ensureSeedUsers()
-      await ensureSeedCategories()
+      await ensureSeedReasons()
       await ensureSeedInsurances()
       await ensureSeedHouses()
       await ensureSeedDummyReferrals()

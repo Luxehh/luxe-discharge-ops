@@ -8,7 +8,6 @@ import { usePagination } from '../hooks/usePagination'
 
 export default function NotAcceptReasons() {
   const [reasons, setReasons] = useState([])
-  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -28,7 +27,6 @@ export default function NotAcceptReasons() {
     try {
       const data = await apiRequest('/api/reasons')
       setReasons(data.reasons || [])
-      setCategories(data.categories || [])
     } catch (err) {
       setError(err.message || 'Failed to load reasons')
     } finally {
@@ -91,7 +89,7 @@ export default function NotAcceptReasons() {
     <>
       <PageShell
         title="Not-Accept Reasons"
-        subtitle="Shared reason list used across all locations when logging ‘Not Able to Accept.’ Each reason belongs to one of the report categories."
+        subtitle="Shared reason list used across all locations when logging ‘Not Able to Accept.’"
         actions={
           <button
             type="button"
@@ -118,7 +116,7 @@ export default function NotAcceptReasons() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-gray-100 border-b border-gray-200">
-                    {['Reason', 'Category', 'Actions'].map((col) => (
+                    {['Reason', 'Actions'].map((col) => (
                       <th
                         key={col}
                         className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500"
@@ -139,9 +137,6 @@ export default function NotAcceptReasons() {
                         >
                           {reason.name}
                         </button>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700">
-                        {reason.categoryName || '—'}
                       </td>
                       <td className="px-5 py-4 text-sm whitespace-nowrap">
                         <div className="flex items-center gap-4">
@@ -165,7 +160,7 @@ export default function NotAcceptReasons() {
                   ))}
                   {reasons.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="px-5 py-10 text-center text-gray-500">
+                      <td colSpan={2} className="px-5 py-10 text-center text-gray-500">
                         No reasons found.
                       </td>
                     </tr>
@@ -178,20 +173,15 @@ export default function NotAcceptReasons() {
               {pagination.pageItems.map((reason) => (
                 <div key={reason.id} className="p-4 space-y-2">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-bold text-gray-900">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(reason)}
-                          className="text-left hover:text-blue-700 hover:underline"
-                        >
-                          {reason.name}
-                        </button>
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {reason.categoryName || 'No category'}
-                      </p>
-                    </div>
+                    <p className="font-bold text-gray-900">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(reason)}
+                        className="text-left hover:text-blue-700 hover:underline"
+                      >
+                        {reason.name}
+                      </button>
+                    </p>
                     <div className="flex gap-3 shrink-0">
                       <button
                         type="button"
@@ -237,11 +227,9 @@ export default function NotAcceptReasons() {
         open={formOpen}
         mode={formMode}
         initialValues={editingReason}
-        categories={categories}
         existingItems={reasons}
         onClose={() => setFormOpen(false)}
         onSave={handleSave}
-        onCategoriesChange={setCategories}
       />
 
       <ConfirmDeleteModal

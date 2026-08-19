@@ -19,6 +19,7 @@ export const LOCATION_ADMIN_MENU = [
   '/overview',
   '/add-referral',
   '/comparison-trends',
+  '/branch-comparison',
   '/insurances',
 ]
 
@@ -26,7 +27,6 @@ export const SUPER_ADMIN_ONLY_PATHS = [
   '/locations',
   '/insurance-types',
   '/not-accept-reasons',
-  '/categories',
   '/location-logins',
   '/data-management',
 ]

@@ -1,4 +1,5 @@
 const express = require('express')
+const mongoose = require('mongoose')
 const { authMiddleware, requireSuperAdmin } = require('../middleware/auth')
 
 const router = express.Router()
@@ -62,21 +63,26 @@ router.delete('/delete-all', requireSuperAdmin, async (req, res) => {
 
     const Referral = require('../models/Referral')
     const House = require('../models/House')
-    const Category = require('../models/Category')
     const NotAcceptReason = require('../models/NotAcceptReason')
     const Insurance = require('../models/Insurance')
     const InsuranceType = require('../models/InsuranceType')
     const SystemSetting = require('../models/SystemSetting')
 
-    const [referrals, houses, categories, reasons, insurances, insuranceTypes] =
+    const [referrals, houses, reasons, insurances, insuranceTypes] =
       await Promise.all([
         Referral.deleteMany({}),
         House.deleteMany({}),
-        Category.deleteMany({}),
         NotAcceptReason.deleteMany({}),
         Insurance.deleteMany({}),
         InsuranceType.deleteMany({}),
       ])
+
+    // Drop legacy categories collection if present
+    try {
+      await mongoose.connection.db.collection('categories').drop()
+    } catch {
+      /* ignore if missing */
+    }
 
     await SystemSetting.findOneAndUpdate(
       { key: 'skipDummySeed' },
@@ -94,7 +100,6 @@ router.delete('/delete-all', requireSuperAdmin, async (req, res) => {
       deleted: {
         referrals: referrals.deletedCount,
         houses: houses.deletedCount,
-        categories: categories.deletedCount,
         reasons: reasons.deletedCount,
         insurances: insurances.deletedCount,
         insuranceTypes: insuranceTypes.deletedCount,

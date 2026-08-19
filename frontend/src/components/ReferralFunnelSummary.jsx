@@ -170,40 +170,16 @@ export default function ReferralFunnelSummary({
   const acceptedTotal = ableRows.reduce((sum, row) => sum + row.accepted, 0)
   const notAdmittedTotal = ableRows.reduce((sum, row) => sum + row.notAdmitted, 0)
 
-  const categoryMap = new Map()
-
-  notAbleRows.forEach((row) => {
+  const notAbleTableRows = notAbleRows.map((row) => {
     const reason = reasons.find((r) => r.id === row.reasonId)
-    const categoryName =
-      row.categoryName || reason?.categoryName || 'Uncategorized'
-    const categoryId = row.categoryId || reason?.categoryId || categoryName
-
-    if (!categoryMap.has(categoryId)) {
-      categoryMap.set(categoryId, {
-        id: categoryId,
-        name: categoryName,
-        rows: [],
-        total: 0,
-      })
-    }
-
-    const group = categoryMap.get(categoryId)
-    group.rows.push({
-      key: row.reasonId || row.key,
+    return {
+      key: row.reasonId || row.key || row.reasonName,
       label: row.reasonName || reason?.name || 'Unknown',
       count: row.count,
-    })
-    group.total += row.count
-  })
-
-  const categorySections = Array.from(categoryMap.values()).map((group) => ({
-    ...group,
-    rows: group.rows.map((row) => ({
-      ...row,
       ratePart: row.count,
-      rateWhole: group.total,
-    })),
-  }))
+      rateWhole: notAbleTotal,
+    }
+  })
 
   const ableTableRows = ableRows.map((row) => ({
     key: row.insuranceId,
@@ -265,27 +241,19 @@ export default function ReferralFunnelSummary({
         />
       </div>
 
-      {categorySections.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {categorySections.map((section) => (
-            <SectionTable
-              key={section.id}
-              title={`Not Able to Accept — ${section.name}`}
-              total={section.total}
-              headerClass="bg-rose-700"
-              columns={['Reason', 'Count', `% of ${section.name}`]}
-              rows={section.rows}
-              totalRow={{
-                count: section.total,
-                ratePart: section.total,
-                rateWhole: section.total || 1,
-              }}
-            />
-          ))}
-        </div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <SectionTable
+          title="Not Able to Accept"
+          total={notAbleTotal}
+          headerClass="bg-rose-700"
+          columns={['Reason', 'Count', '% of Not Able']}
+          rows={notAbleTableRows}
+          totalRow={{
+            count: notAbleTotal,
+            ratePart: notAbleTotal,
+            rateWhole: notAbleTotal || 1,
+          }}
+        />
         <SectionTable
           title="Able to Accept"
           total={ableTotal}
@@ -298,6 +266,9 @@ export default function ReferralFunnelSummary({
             rateWhole: ableTotal || 1,
           }}
         />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <SectionTable
           title="Received/Accepted"
           total={acceptedTotal}
@@ -313,9 +284,6 @@ export default function ReferralFunnelSummary({
             rateWhole: ableTotal,
           }}
         />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <SectionTable
           title="Not Admitted"
           total={notAdmittedTotal}

@@ -23,8 +23,6 @@ function formatReferral(referral) {
     notAbleToAccept: (referral.notAbleToAccept || []).map((row) => ({
       reasonId: row.reasonId || '',
       reasonName: row.reasonName || '',
-      categoryId: row.categoryId || '',
-      categoryName: row.categoryName || '',
       count: Number(row.count) || 0,
     })),
     ableToAccept: (referral.ableToAccept || []).map((row) => ({

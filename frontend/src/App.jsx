@@ -8,11 +8,11 @@ import OverviewLocation from './pages/OverviewLocation'
 import OverviewHouse from './pages/OverviewHouse'
 import AddReferral from './pages/AddReferral'
 import ComparisonTrends from './pages/ComparisonTrends'
+import BranchComparison from './pages/BranchComparison'
 import Locations from './pages/Locations'
 import Insurances from './pages/Insurances'
 import InsuranceTypes from './pages/InsuranceTypes'
 import NotAcceptReasons from './pages/NotAcceptReasons'
-import Categories from './pages/Categories'
 import LocationLogins from './pages/LocationLogins'
 import DataManagement from './pages/DataManagement'
 import ReferralView from './pages/ReferralView'
@@ -60,6 +60,7 @@ function App() {
         <Route path="add-referral" element={<AddReferral />} />
         <Route path="referral-view" element={<ReferralView />} />
         <Route path="comparison-trends" element={<ComparisonTrends />} />
+        <Route path="branch-comparison" element={<BranchComparison />} />
         <Route
           path="locations"
           element={
@@ -82,14 +83,6 @@ function App() {
           element={
             <SuperAdminOnly>
               <NotAcceptReasons />
-            </SuperAdminOnly>
-          }
-        />
-        <Route
-          path="categories"
-          element={
-            <SuperAdminOnly>
-              <Categories />
             </SuperAdminOnly>
           }
         />

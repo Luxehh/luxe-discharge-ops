@@ -29,6 +29,14 @@ function TrendsIcon() {
   )
 }
 
+function BranchIcon() {
+  return (
+    <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 16V9m5 7V5m5 11v-4" />
+    </svg>
+  )
+}
+
 function LocationsIcon() {
   return (
     <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -61,14 +69,6 @@ function NotAcceptIcon() {
   )
 }
 
-function CategoryIcon() {
-  return (
-    <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-    </svg>
-  )
-}
-
 function LoginsIcon() {
   return (
     <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -89,6 +89,7 @@ const MENU_ITEMS = [
   { to: '/overview', label: 'Overview', icon: OverviewIcon },
   { to: '/add-referral', label: 'Add Referral Details', icon: ReferralIcon },
   { to: '/comparison-trends', label: 'Comparison & Trends', icon: TrendsIcon },
+  { to: '/branch-comparison', label: 'Branch Comparison', icon: BranchIcon },
   { to: '/locations', label: 'Locations', icon: LocationsIcon, superAdminOnly: true },
   { to: '/insurances', label: 'Insurances', icon: InsurancesIcon },
   {
@@ -103,7 +104,6 @@ const MENU_ITEMS = [
     icon: NotAcceptIcon,
     superAdminOnly: true,
   },
-  { to: '/categories', label: 'Category', icon: CategoryIcon, superAdminOnly: true },
   {
     to: '/location-logins',
     label: 'Location Logins',

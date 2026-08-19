@@ -58,7 +58,6 @@ export default function AddReferral() {
 
   const [houses, setHouses] = useState([])
   const [reasons, setReasons] = useState([])
-  const [categories, setCategories] = useState([])
   const [insurances, setInsurances] = useState([])
   const [insuranceTypes, setInsuranceTypes] = useState([])
   const [locations, setLocations] = useState([])
@@ -142,7 +141,6 @@ export default function AddReferral() {
 
       setHouses(nextHouses)
       setReasons(reasonsData.reasons || [])
-      setCategories(reasonsData.categories || [])
       setInsurances(insurancesData.insurances || [])
       setInsuranceTypes(insurancesData.types || [])
       setLocations(insurancesData.locations || housesData.locations || [])
@@ -364,8 +362,6 @@ export default function AddReferral() {
             return {
               reasonId: row.reasonId,
               reasonName: reason?.name || '',
-              categoryId: reason?.categoryId || '',
-              categoryName: reason?.categoryName || '',
               count: toNumber(row.count),
             }
           }),
@@ -772,11 +768,9 @@ export default function AddReferral() {
       <ReasonFormModal
         open={reasonModalOpen}
         mode="add"
-        categories={categories}
         existingItems={reasons}
         onClose={() => setReasonModalOpen(false)}
         onSave={handleSaveNewReason}
-        onCategoriesChange={setCategories}
       />
 
       <InsuranceFormModal

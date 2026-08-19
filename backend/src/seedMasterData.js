@@ -1,5 +1,5 @@
 /**
- * Shared master-data seed (users, categories, insurances, houses).
+ * Shared master-data seed (users, reasons, insurances, houses).
  * Used on startup and after delete-all (without dummy referrals).
  */
 
@@ -71,32 +71,22 @@ async function ensureSeedInsurances() {
   console.log('Seeded default insurance types and insurances')
 }
 
-async function ensureSeedCategories() {
-  const Category = require('./models/Category')
+async function ensureSeedReasons() {
   const NotAcceptReason = require('./models/NotAcceptReason')
 
-  const count = await Category.countDocuments()
+  const count = await NotAcceptReason.countDocuments()
   if (count > 0) return
 
-  const defaults = [
-    { name: 'Out of Network' },
-    { name: 'ACO' },
-    { name: 'Out of Coverage' },
-  ]
-
-  const created = await Category.insertMany(defaults)
-  const byName = Object.fromEntries(created.map((c) => [c.name, c._id]))
-
   await NotAcceptReason.insertMany([
-    { name: 'Out of Network', category: byName['Out of Network'] },
-    { name: 'Out of Network / Staffing', category: byName['Out of Network'] },
-    { name: 'Advocate at Home (PAN)', category: byName.ACO },
-    { name: 'DULY ACO', category: byName.ACO },
-    { name: 'Staffing Unavailable', category: byName['Out of Coverage'] },
-    { name: 'Distance Too Far', category: byName['Out of Coverage'] },
+    { name: 'Out of Network' },
+    { name: 'Out of Network / Staffing' },
+    { name: 'Advocate at Home (PAN)' },
+    { name: 'DULY ACO' },
+    { name: 'Staffing Unavailable' },
+    { name: 'Distance Too Far' },
   ])
 
-  console.log('Seeded default categories and not-accept reasons')
+  console.log('Seeded default not-accept reasons')
 }
 
 async function ensureSeedUsers() {
@@ -156,14 +146,14 @@ async function ensureSeedUsers() {
 
 /** After wipe: restore empty master catalogs (no referrals). */
 async function reseedMasterData() {
-  await ensureSeedCategories()
+  await ensureSeedReasons()
   await ensureSeedInsurances()
   await ensureSeedHouses()
 }
 
 module.exports = {
   ensureSeedUsers,
-  ensureSeedCategories,
+  ensureSeedReasons,
   ensureSeedInsurances,
   ensureSeedHouses,
   reseedMasterData,

@@ -91,7 +91,7 @@ export default function DataManagement() {
 
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            This permanently deletes all referrals, houses, categories, reasons, and insurances.
+            This permanently deletes all referrals, houses, reasons, and insurances.
             Location logins are kept so you can still sign in. After delete, default master lists
             are restored empty of referral data, and dummy referrals will never auto-seed again.
           </p>

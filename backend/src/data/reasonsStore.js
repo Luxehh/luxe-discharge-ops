@@ -1,45 +1,28 @@
-const categoriesStore = require('./categoriesStore')
-
 let nextId = 7
-
 let reasons = [
-  { id: '1', name: 'Out of Network', categoryId: '1' },
-  { id: '2', name: 'Out of Network / Staffing', categoryId: '1' },
-  { id: '3', name: 'Advocate at Home (PAN)', categoryId: '2' },
-  { id: '4', name: 'DULY ACO', categoryId: '2' },
-  { id: '5', name: 'Staffing Unavailable', categoryId: '3' },
-  { id: '6', name: 'Distance Too Far', categoryId: '3' },
+  { id: '1', name: 'Out of Network' },
+  { id: '2', name: 'Out of Network / Staffing' },
+  { id: '3', name: 'Advocate at Home (PAN)' },
+  { id: '4', name: 'DULY ACO' },
+  { id: '5', name: 'Staffing Unavailable' },
+  { id: '6', name: 'Distance Too Far' },
 ]
 
 function format(reason) {
-  const category = categoriesStore.getById(reason.categoryId)
   return {
     id: reason.id || String(reason._id),
     name: reason.name,
-    categoryId: reason.categoryId,
-    categoryName: category?.name || '',
   }
 }
 
 function getAll() {
-  return reasons.map(format)
+  return reasons.map(format).sort((a, b) => a.name.localeCompare(b.name))
 }
 
-function getById(id) {
-  const reason = reasons.find((r) => r.id === String(id))
-  return reason ? format(reason) : null
-}
-
-function create({ name, categoryId }) {
+function create({ name }) {
   const trimmed = name?.trim()
   if (!trimmed) {
     const err = new Error('Reason name is required')
-    err.status = 400
-    throw err
-  }
-
-  if (!categoryId || !categoriesStore.getById(categoryId)) {
-    const err = new Error('Valid category is required')
     err.status = 400
     throw err
   }
@@ -56,13 +39,12 @@ function create({ name, categoryId }) {
   const reason = {
     id: String(nextId++),
     name: trimmed,
-    categoryId: String(categoryId),
   }
   reasons.push(reason)
   return format(reason)
 }
 
-function update(id, { name, categoryId }) {
+function update(id, { name }) {
   const index = reasons.findIndex((r) => r.id === String(id))
   if (index === -1) {
     const err = new Error('Reason not found')
@@ -73,12 +55,6 @@ function update(id, { name, categoryId }) {
   const trimmed = name?.trim()
   if (!trimmed) {
     const err = new Error('Reason name is required')
-    err.status = 400
-    throw err
-  }
-
-  if (!categoryId || !categoriesStore.getById(categoryId)) {
-    const err = new Error('Valid category is required')
     err.status = 400
     throw err
   }
@@ -96,7 +72,6 @@ function update(id, { name, categoryId }) {
   reasons[index] = {
     ...reasons[index],
     name: trimmed,
-    categoryId: String(categoryId),
   }
   return format(reasons[index])
 }
@@ -108,26 +83,12 @@ function remove(id) {
     err.status = 404
     throw err
   }
-
-  const [removed] = reasons.splice(index, 1)
-  return format(removed)
-}
-
-function countByCategory(categoryId) {
-  return reasons.filter((r) => r.categoryId === String(categoryId)).length
-}
-
-function clearCategory(categoryId) {
-  reasons = reasons.filter((r) => r.categoryId !== String(categoryId))
+  reasons.splice(index, 1)
 }
 
 module.exports = {
   getAll,
-  getById,
   create,
   update,
   remove,
-  countByCategory,
-  clearCategory,
-  format,
 }

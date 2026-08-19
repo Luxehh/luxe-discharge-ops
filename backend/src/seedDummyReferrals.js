@@ -82,8 +82,6 @@ function buildReferralPayload(house, month, reasons, insurancesForLocation) {
     notAbleToAccept.push({
       reasonId: String(reason._id || reason.id),
       reasonName: reason.name,
-      categoryId: String(reason.category?._id || reason.category || ''),
-      categoryName: reason.categoryName || reason.category?.name || '',
       count,
     })
   }
@@ -144,7 +142,6 @@ async function ensureSeedDummyReferrals({ force = false } = {}) {
   const Referral = require('./models/Referral')
   const House = require('./models/House')
   const NotAcceptReason = require('./models/NotAcceptReason')
-  const Category = require('./models/Category')
   const Insurance = require('./models/Insurance')
 
   const skip = await SystemSetting.findOne({ key: 'skipDummySeed' })
@@ -167,19 +164,7 @@ async function ensureSeedDummyReferrals({ force = false } = {}) {
     return
   }
 
-  const categories = await Category.find()
-  const categoryById = Object.fromEntries(
-    categories.map((c) => [String(c._id), c.name])
-  )
-
-  const reasonsRaw = await NotAcceptReason.find().populate('category')
-  const reasons = reasonsRaw.map((r) => ({
-    _id: r._id,
-    name: r.name,
-    category: r.category,
-    categoryName: r.category?.name || categoryById[String(r.category)] || '',
-  }))
-
+  const reasons = await NotAcceptReason.find()
   const insurances = await Insurance.find()
   const insurancesByLocation = insurances.reduce((acc, ins) => {
     if (!acc[ins.location]) acc[ins.location] = []

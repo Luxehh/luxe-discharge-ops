@@ -4,8 +4,6 @@ const reasonRowSchema = new mongoose.Schema(
   {
     reasonId: { type: String, default: '' },
     reasonName: { type: String, default: '' },
-    categoryId: { type: String, default: '' },
-    categoryName: { type: String, default: '' },
     count: { type: Number, default: 0 },
   },
   { _id: false }
