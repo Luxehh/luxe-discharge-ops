@@ -185,7 +185,10 @@ export default function Overview() {
                   <p className="text-[22px] font-bold text-gray-900 leading-none">
                     {loc.accepted}
                   </p>
-                  <p className="text-[11px] text-gray-500 mt-1.5 whitespace-nowrap">
+                  <p
+                    className="text-[11px] text-gray-500 mt-1.5 truncate"
+                    title={`Received/Accepted · ${pctLabel(loc.accepted, loc.able)}`}
+                  >
                     Received/Accepted · {pctLabel(loc.accepted, loc.able)}
                   </p>
                 </div>
@@ -193,7 +196,10 @@ export default function Overview() {
                   <p className="text-[22px] font-bold text-gray-900 leading-none">
                     {loc.notAdmitted}
                   </p>
-                  <p className="text-[11px] text-gray-500 mt-1.5 whitespace-nowrap">
+                  <p
+                    className="text-[11px] text-gray-500 mt-1.5 truncate"
+                    title={`Not Admitted · ${pctLabel(loc.notAdmitted, loc.accepted)}`}
+                  >
                     Not Admitted · {pctLabel(loc.notAdmitted, loc.accepted)}
                   </p>
                 </div>

@@ -10,7 +10,7 @@ export default function PageShell({
   const widthClass = fullWidth ? 'w-full max-w-7xl' : 'w-full max-w-5xl'
 
   return (
-    <div className={`flex flex-col ${fullWidth ? '' : 'items-center'}`}>
+    <div className="flex flex-col items-center">
       <div className={`${widthClass} mb-6`}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>

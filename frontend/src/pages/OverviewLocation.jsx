@@ -253,7 +253,10 @@ export default function OverviewLocation() {
                     <p className="text-[22px] font-bold text-gray-900 leading-none">
                       {house.accepted}
                     </p>
-                    <p className="text-[11px] text-gray-500 mt-1.5 whitespace-nowrap">
+                    <p
+                      className="text-[11px] text-gray-500 mt-1.5 truncate"
+                      title={`Received/Accepted · ${pctLabel(house.accepted, house.able)}`}
+                    >
                       Received/Accepted · {pctLabel(house.accepted, house.able)}
                     </p>
                   </div>
@@ -261,7 +264,10 @@ export default function OverviewLocation() {
                     <p className="text-[22px] font-bold text-gray-900 leading-none">
                       {house.notAdmitted}
                     </p>
-                    <p className="text-[11px] text-gray-500 mt-1.5 whitespace-nowrap">
+                    <p
+                      className="text-[11px] text-gray-500 mt-1.5 truncate"
+                      title={`Not Admitted · ${pctLabel(house.notAdmitted, house.accepted)}`}
+                    >
                       Not Admitted · {pctLabel(house.notAdmitted, house.accepted)}
                     </p>
                   </div>
