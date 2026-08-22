@@ -103,6 +103,36 @@ function aggregateReferrals(referrals, monthSet, insuranceTypeById) {
   return metrics
 }
 
+/** True Medicare only — not Medicare Advantage / other names containing "medicare". */
+function isMedicareRow(row, insuranceTypeById, typeNameById) {
+  const name = String(row.insuranceName || '').trim().toLowerCase()
+  if (name === 'medicare') return true
+  const typeId = row.typeId || insuranceTypeById[row.insuranceId] || ''
+  const typeName = String(typeNameById[typeId]?.name || '')
+    .trim()
+    .toLowerCase()
+  return typeName === 'medicare'
+}
+
+function sumMedicareAbleAccepted(
+  referrals,
+  monthSet,
+  insuranceTypeById,
+  typeNameById
+) {
+  let able = 0
+  let accepted = 0
+  referrals.forEach((ref) => {
+    if (monthSet && !monthSet.has(ref.month)) return
+    ;(ref.ableToAccept || []).forEach((row) => {
+      if (!isMedicareRow(row, insuranceTypeById, typeNameById)) return
+      able += Number(row.count) || 0
+      accepted += Number(row.accepted) || 0
+    })
+  })
+  return { able, accepted }
+}
+
 function deltaLabel(current, previous) {
   const diff = current - previous
   const sign = diff > 0 ? '+' : ''
@@ -456,10 +486,16 @@ export default function ComparisonTrends() {
   }, [chartPeriods, filteredReferrals, insuranceTypeById])
 
   const circleMetrics = useMemo(() => {
-    const able = Number(current.able) || 0
-    const accepted = Number(current.accepted) || 0
-    const dischargeWithHomeHealth = Number(current.dischargeWithHomeHealth) || 0
-    // Received/Accepted rate of Able; >= 70% → green, otherwise red
+    const currentMonths = new Set(
+      comparisonPeriods[comparisonPeriods.length - 1]?.months || []
+    )
+    const { able, accepted } = sumMedicareAbleAccepted(
+      filteredReferrals,
+      currentMonths,
+      insuranceTypeById,
+      typeNameById
+    )
+    // Received/Accepted rate of Medicare Able; >= 70% → green, otherwise red
     const acceptanceRate = able > 0 ? (accepted / able) * 100 : 0
     const isGreen = acceptanceRate >= 70
     const color = isGreen ? '#2F6B4F' : '#B42318'
@@ -467,12 +503,18 @@ export default function ComparisonTrends() {
     return {
       able,
       accepted,
-      dischargeWithHomeHealth: Math.max(dischargeWithHomeHealth, able),
+      // Able ring fills against Medicare able (same period); Received uses able as total
+      ableTotal: Math.max(able, 1),
       acceptanceRate,
       color,
       isGreen,
     }
-  }, [current])
+  }, [
+    comparisonPeriods,
+    filteredReferrals,
+    insuranceTypeById,
+    typeNameById,
+  ])
 
   const typeMixData = useMemo(() => {
     const monthKey = typeMixMonth || latestDataMonth
@@ -819,33 +861,36 @@ export default function ComparisonTrends() {
           </ChartCard>
 
           <section className="bg-white rounded-xl border border-gray-200 shadow-md p-4 sm:p-5 break-inside-avoid">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-              <h3 className="text-base font-bold text-gray-900">
-                Able to Accept & Received/Accepted
-              </h3>
-              <p className="text-xs text-luxe-muted">
-                Color: green if Received/Accepted ≥ 70% of Able, otherwise red
-                {' · '}
-                Current rate{' '}
-                <span
-                  className={`font-semibold ${
-                    circleMetrics.isGreen ? 'text-emerald-700' : 'text-red-700'
-                  }`}
-                >
-                  {circleMetrics.acceptanceRate.toFixed(1)}%
-                </span>
+            <div className="mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-luxe-muted">
+                Medicare Information
               </p>
+              <div className="flex flex-wrap items-center justify-between gap-3 mt-1">
+                <h3 className="text-base font-bold text-gray-900">
+                  Able to Accept & Received/Accepted
+                </h3>
+                <p className="text-xs text-luxe-muted">
+                  Medicare only · Color: green if Received/Accepted ≥ 70% of Able,
+                  otherwise red
+                  {' · '}
+                  Current rate{' '}
+                  <span
+                    className={`font-semibold ${
+                      circleMetrics.isGreen ? 'text-emerald-700' : 'text-red-700'
+                    }`}
+                  >
+                    {circleMetrics.acceptanceRate.toFixed(1)}%
+                  </span>
+                </p>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <QuietCircleChart
                 title="Able to Accept"
                 value={circleMetrics.able}
-                total={circleMetrics.dischargeWithHomeHealth}
+                total={circleMetrics.ableTotal}
                 color={circleMetrics.color}
-                centerLabel={pctLabel(
-                  circleMetrics.able,
-                  circleMetrics.dischargeWithHomeHealth
-                )}
+                centerLabel={pctLabel(circleMetrics.able, circleMetrics.able)}
               />
               <QuietCircleChart
                 title="Received/Accepted"
