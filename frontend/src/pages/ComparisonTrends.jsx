@@ -34,6 +34,7 @@ const TYPE_COLORS = {
   green: '#2F6B4F',
   yellow: '#8a845f',
   red: '#B4534A',
+  grey: '#9CA3AF',
 }
 
 const FUNNEL_METRICS = [

@@ -10,7 +10,7 @@ const insuranceTypeSchema = new mongoose.Schema(
     },
     color: {
       type: String,
-      enum: ['green', 'yellow', 'red'],
+      enum: ['green', 'yellow', 'red', 'grey'],
       default: 'green',
       required: true,
     },
