@@ -38,7 +38,7 @@ body {
 /* Print / Save as PDF — current page content only (no chrome) */
 @media print {
   @page {
-    margin: 12mm;
+    margin: 8mm;
   }
 
   html,
@@ -77,5 +77,113 @@ body {
 
   .dashboard-main {
     padding: 0 !important;
+  }
+
+  /* Branch Comparison: one house per page, balanced spacing */
+  body.branch-comparison-printing .branch-house-print-page {
+    break-after: page;
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+  }
+
+  body.branch-comparison-printing
+    .branch-house-print-page + .branch-house-print-page {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  body.branch-comparison-printing
+    .branch-house-print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  body.branch-comparison-printing .branch-house-print-page.space-y-5 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0 !important;
+  }
+
+  body.branch-comparison-printing .branch-print-charts {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 1 1 auto;
+  }
+
+  body.branch-comparison-printing .branch-print-charts.space-y-5 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0 !important;
+  }
+
+  body.branch-comparison-printing .branch-print-house-header h3 {
+    font-size: 1.35rem !important;
+    margin: 0 !important;
+  }
+
+  body.branch-comparison-printing .branch-print-house-header p {
+    margin-top: 2px !important;
+    font-size: 11px !important;
+  }
+
+  /* KPI cards: single row of 6 in PDF */
+  body.branch-comparison-printing .branch-kpi-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin: 0 !important;
+  }
+
+  body.branch-comparison-printing .branch-kpi-grid > div {
+    box-shadow: none !important;
+    padding: 8px 8px !important;
+  }
+
+  body.branch-comparison-printing .branch-kpi-grid .text-2xl {
+    font-size: 1.15rem !important;
+  }
+
+  body.branch-comparison-printing .branch-kpi-grid .text-\[11px\] {
+    font-size: 9px !important;
+  }
+
+  /* Chart cards — clearer separation, fuller page use */
+  body.branch-comparison-printing .branch-print-chart-card {
+    background: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    padding: 10px 12px !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    flex-shrink: 0;
+  }
+
+  body.branch-comparison-printing .branch-print-chart-card > div:first-child {
+    margin-bottom: 6px !important;
+  }
+
+  body.branch-comparison-printing .branch-print-chart-card h3 {
+    font-size: 12px !important;
+    margin: 0 !important;
+    line-height: 1.3 !important;
+  }
+
+  /*
+   * Print charts use fixed pixel SVG sizes (set in JSX).
+   * Do not force ResponsiveContainer % sizing — that blanks charts in Chrome print.
+   */
+  body.branch-comparison-printing .branch-print-chart {
+    height: 210px !important;
+    min-height: 210px !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  body.branch-comparison-printing .branch-print-chart .recharts-wrapper {
+    width: 100% !important;
+  }
+
+  body.branch-comparison-printing .branch-print-chart svg.recharts-surface {
+    overflow: visible !important;
   }
 }

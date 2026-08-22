@@ -6,12 +6,13 @@ export default function PageShell({
   bare = false,
   fullWidth = false,
   contentClassName = '',
+  headerClassName = '',
 }) {
   const widthClass = fullWidth ? 'w-full max-w-7xl' : 'w-full max-w-5xl'
 
   return (
     <div className="flex flex-col items-center">
-      <div className={`${widthClass} mb-6`}>
+      <div className={`${widthClass} mb-6 ${headerClassName}`}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h2 className="text-2xl sm:text-3xl font-semibold font-serif text-luxe-text tracking-tight">

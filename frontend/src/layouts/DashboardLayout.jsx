@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { apiRequest } from '../utils/api'
 import Header from '../components/Header'
 import Sidebar from '../components/Sidebar'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth()
@@ -56,6 +57,8 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      <ScrollToTopButton />
     </div>
   )
 }
