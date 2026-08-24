@@ -34,6 +34,7 @@ const TYPE_COLORS = {
   green: '#2F6B4F',
   yellow: '#8a845f',
   red: '#B4534A',
+  grey: '#9CA3AF',
 }
 
 const FUNNEL_METRICS = [
@@ -102,6 +103,36 @@ function aggregateReferrals(referrals, monthSet, insuranceTypeById) {
   return metrics
 }
 
+/** True Medicare only — not Medicare Advantage / other names containing "medicare". */
+function isMedicareRow(row, insuranceTypeById, typeNameById) {
+  const name = String(row.insuranceName || '').trim().toLowerCase()
+  if (name === 'medicare') return true
+  const typeId = row.typeId || insuranceTypeById[row.insuranceId] || ''
+  const typeName = String(typeNameById[typeId]?.name || '')
+    .trim()
+    .toLowerCase()
+  return typeName === 'medicare'
+}
+
+function sumMedicareAbleAccepted(
+  referrals,
+  monthSet,
+  insuranceTypeById,
+  typeNameById
+) {
+  let able = 0
+  let accepted = 0
+  referrals.forEach((ref) => {
+    if (monthSet && !monthSet.has(ref.month)) return
+    ;(ref.ableToAccept || []).forEach((row) => {
+      if (!isMedicareRow(row, insuranceTypeById, typeNameById)) return
+      able += Number(row.count) || 0
+      accepted += Number(row.accepted) || 0
+    })
+  })
+  return { able, accepted }
+}
+
 function deltaLabel(current, previous) {
   const diff = current - previous
   const sign = diff > 0 ? '+' : ''
@@ -162,7 +193,7 @@ function QuietCircleChart({ title, value, total, color, centerLabel }) {
   return (
     <div className="flex flex-col items-center">
       <p className="text-sm font-semibold text-luxe-text mb-2">{title}</p>
-      <div className="relative w-full h-56 sm:h-64">
+      <div className="relative w-full max-w-md h-72 sm:h-80">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -170,8 +201,8 @@ function QuietCircleChart({ title, value, total, color, centerLabel }) {
               dataKey="value"
               startAngle={90}
               endAngle={-270}
-              innerRadius="68%"
-              outerRadius="88%"
+              innerRadius="45%"
+              outerRadius="90%"
               stroke="none"
               paddingAngle={0}
             >
@@ -180,9 +211,13 @@ function QuietCircleChart({ title, value, total, color, centerLabel }) {
             </Pie>
           </PieChart>
         </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <p className="text-3xl font-bold text-luxe-text leading-none">{filled}</p>
-          <p className="text-xs text-luxe-muted mt-1">{centerLabel || pct}</p>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-16 sm:px-20">
+          <p className="text-3xl sm:text-4xl font-bold text-luxe-text leading-none">
+            {filled}
+          </p>
+          <p className="text-xs text-luxe-muted mt-1.5 truncate max-w-full text-center">
+            {centerLabel || pct}
+          </p>
         </div>
       </div>
     </div>
@@ -451,10 +486,16 @@ export default function ComparisonTrends() {
   }, [chartPeriods, filteredReferrals, insuranceTypeById])
 
   const circleMetrics = useMemo(() => {
-    const able = Number(current.able) || 0
-    const accepted = Number(current.accepted) || 0
-    const dischargeWithHomeHealth = Number(current.dischargeWithHomeHealth) || 0
-    // Received/Accepted rate of Able; >= 70% → green, otherwise red
+    const currentMonths = new Set(
+      comparisonPeriods[comparisonPeriods.length - 1]?.months || []
+    )
+    const { able, accepted } = sumMedicareAbleAccepted(
+      filteredReferrals,
+      currentMonths,
+      insuranceTypeById,
+      typeNameById
+    )
+    // Received/Accepted rate of Medicare Able; >= 70% → green, otherwise red
     const acceptanceRate = able > 0 ? (accepted / able) * 100 : 0
     const isGreen = acceptanceRate >= 70
     const color = isGreen ? '#2F6B4F' : '#B42318'
@@ -462,12 +503,18 @@ export default function ComparisonTrends() {
     return {
       able,
       accepted,
-      dischargeWithHomeHealth: Math.max(dischargeWithHomeHealth, able),
+      // Able ring fills against Medicare able (same period); Received uses able as total
+      ableTotal: Math.max(able, 1),
       acceptanceRate,
       color,
       isGreen,
     }
-  }, [current])
+  }, [
+    comparisonPeriods,
+    filteredReferrals,
+    insuranceTypeById,
+    typeNameById,
+  ])
 
   const typeMixData = useMemo(() => {
     const monthKey = typeMixMonth || latestDataMonth
@@ -814,33 +861,36 @@ export default function ComparisonTrends() {
           </ChartCard>
 
           <section className="bg-white rounded-xl border border-gray-200 shadow-md p-4 sm:p-5 break-inside-avoid">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-              <h3 className="text-base font-bold text-gray-900">
-                Able to Accept & Received/Accepted
-              </h3>
-              <p className="text-xs text-luxe-muted">
-                Color: green if Received/Accepted ≥ 70% of Able, otherwise red
-                {' · '}
-                Current rate{' '}
-                <span
-                  className={`font-semibold ${
-                    circleMetrics.isGreen ? 'text-emerald-700' : 'text-red-700'
-                  }`}
-                >
-                  {circleMetrics.acceptanceRate.toFixed(1)}%
-                </span>
+            <div className="mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-luxe-muted">
+                Medicare Information
               </p>
+              <div className="flex flex-wrap items-center justify-between gap-3 mt-1">
+                <h3 className="text-base font-bold text-gray-900">
+                  Able to Accept & Received/Accepted
+                </h3>
+                <p className="text-xs text-luxe-muted">
+                  Medicare only · Color: green if Received/Accepted ≥ 70% of Able,
+                  otherwise red
+                  {' · '}
+                  Current rate{' '}
+                  <span
+                    className={`font-semibold ${
+                      circleMetrics.isGreen ? 'text-emerald-700' : 'text-red-700'
+                    }`}
+                  >
+                    {circleMetrics.acceptanceRate.toFixed(1)}%
+                  </span>
+                </p>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <QuietCircleChart
                 title="Able to Accept"
                 value={circleMetrics.able}
-                total={circleMetrics.dischargeWithHomeHealth}
+                total={circleMetrics.ableTotal}
                 color={circleMetrics.color}
-                centerLabel={pctLabel(
-                  circleMetrics.able,
-                  circleMetrics.dischargeWithHomeHealth
-                )}
+                centerLabel={pctLabel(circleMetrics.able, circleMetrics.able)}
               />
               <QuietCircleChart
                 title="Received/Accepted"
@@ -852,56 +902,131 @@ export default function ComparisonTrends() {
             </div>
           </section>
 
-          <ChartCard
-            title="Insurance Type Mix"
-            filter={
-              <select
-                value={typeMixMonth || latestDataMonth}
-                onChange={(e) => setTypeMixMonth(e.target.value)}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/30"
-              >
-                {(typeMixMonthOptions.length
-                  ? typeMixMonthOptions
-                  : [latestDataMonth]
-                ).map((month) => (
-                  <option key={month} value={month}>
-                    {formatMonthShort(month)}
-                  </option>
-                ))}
-              </select>
-            }
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={typeMixData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={60}
-                  outerRadius={95}
-                  paddingAngle={2}
-                  label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
-                  }
+          <section className="bg-white rounded-xl border border-gray-200 shadow-md p-4 sm:p-5 break-inside-avoid">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+              <h3 className="text-base font-bold text-gray-900">
+                Insurance Type Mix
+              </h3>
+              <div className="print:hidden" data-print-hide>
+                <select
+                  value={typeMixMonth || latestDataMonth}
+                  onChange={(e) => setTypeMixMonth(e.target.value)}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/30"
                 >
-                  {typeMixData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
+                  {(typeMixMonthOptions.length
+                    ? typeMixMonthOptions
+                    : [latestDataMonth]
+                  ).map((month) => (
+                    <option key={month} value={month}>
+                      {formatMonthShort(month)}
+                    </option>
                   ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-                <text
-                  x="50%"
-                  y="50%"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="fill-gray-700 text-sm font-semibold"
-                >
-                  {typeMixTotal} Total received/accepted
-                </text>
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartCard>
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-col items-center">
+              {/* Thick donut — hole ~45% diameter, ring fills out to ~90% (matches Luxe dashboard) */}
+              <div className="relative w-full max-w-md h-72 sm:h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={
+                        typeMixData.length
+                          ? typeMixData
+                          : [{ name: 'Empty', value: 1, color: '#e8e4db' }]
+                      }
+                      dataKey="value"
+                      nameKey="name"
+                      startAngle={90}
+                      endAngle={-270}
+                      innerRadius="45%"
+                      outerRadius="90%"
+                      stroke="none"
+                      paddingAngle={typeMixData.length ? 1.5 : 0}
+                      labelLine={false}
+                      label={
+                        typeMixData.length
+                          ? ({ percent, cx, cy, midAngle, innerRadius, outerRadius }) => {
+                              if (!percent || percent < 0.05) return null
+                              const RADIAN = Math.PI / 180
+                              const radius =
+                                Number(innerRadius) +
+                                (Number(outerRadius) - Number(innerRadius)) * 0.5
+                              const x =
+                                Number(cx) + radius * Math.cos(-midAngle * RADIAN)
+                              const y =
+                                Number(cy) + radius * Math.sin(-midAngle * RADIAN)
+                              return (
+                                <text
+                                  x={x}
+                                  y={y}
+                                  fill="#ffffff"
+                                  textAnchor="middle"
+                                  dominantBaseline="central"
+                                  className="text-[11px] font-bold"
+                                >
+                                  {`${(percent * 100).toFixed(0)}%`}
+                                </text>
+                              )
+                            }
+                          : false
+                      }
+                    >
+                      {(typeMixData.length
+                        ? typeMixData
+                        : [{ name: 'Empty', color: '#e8e4db' }]
+                      ).map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [
+                        `${value} (${pctLabel(value, typeMixTotal)})`,
+                        name,
+                      ]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-16 sm:px-20">
+                  <p className="text-3xl sm:text-4xl font-bold text-luxe-text leading-none">
+                    {typeMixTotal}
+                  </p>
+                  <p
+                    className="text-xs text-luxe-muted mt-1.5 truncate max-w-full text-center"
+                    title="Total received/accepted"
+                  >
+                    Total received/accepted
+                  </p>
+                </div>
+              </div>
+              {typeMixData.length > 0 && (
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-3 px-2">
+                  {typeMixData.map((entry) => (
+                    <div
+                      key={entry.name}
+                      className="flex items-center gap-1.5 text-xs text-gray-600"
+                    >
+                      <span
+                        className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
+                        style={{ backgroundColor: entry.color }}
+                      />
+                      <span
+                        className="truncate max-w-[12rem]"
+                        title={`${entry.name} · ${entry.value}`}
+                      >
+                        {entry.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {typeMixData.length === 0 && (
+                <p className="text-sm text-gray-500 mt-2">
+                  No insurance type mix for this month.
+                </p>
+              )}
+            </div>
+          </section>
 
           {!filteredReferrals.length && (
             <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6 text-center text-gray-500 text-sm">

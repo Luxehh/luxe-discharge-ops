@@ -43,7 +43,7 @@ router.post('/', async (req, res) => {
   try {
     const { name, color } = req.body
     const trimmed = name?.trim()
-    const normalizedColor = ['green', 'yellow', 'red'].includes(color)
+    const normalizedColor = ['green', 'yellow', 'red', 'grey'].includes(color)
       ? color
       : 'green'
 
@@ -83,7 +83,7 @@ router.put('/:id', async (req, res) => {
   try {
     const { name, color } = req.body
     const trimmed = name?.trim()
-    const normalizedColor = ['green', 'yellow', 'red'].includes(color)
+    const normalizedColor = ['green', 'yellow', 'red', 'grey'].includes(color)
       ? color
       : null
 

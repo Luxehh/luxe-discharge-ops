@@ -12,8 +12,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import MonthPicker, { formatMonthLabel } from '../components/MonthPicker'
 import PageShell from '../components/PageShell'
+import MonthPicker, { formatMonthLabel } from '../components/MonthPicker'
 import { useAuth } from '../context/AuthContext'
 import { apiRequest } from '../utils/api'
 import {
@@ -89,10 +89,9 @@ function aggregateReferrals(referrals, monthSet, insuranceFilter) {
   return metrics
 }
 
+/** True Medicare only — not Medicare Advantage. */
 function isMedicareInsurance(name) {
-  return String(name || '')
-    .toLowerCase()
-    .includes('medicare')
+  return String(name || '').trim().toLowerCase() === 'medicare'
 }
 
 function deltaLabel(current, previous) {
@@ -144,7 +143,7 @@ function KpiCard({ label, value, suffix, trend }) {
 
 function KpiRow({ current, previous, compareLabel }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+    <div className="branch-kpi-grid grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
       <KpiCard
         label="DC Total"
         value={current.totalDischarge}
@@ -224,10 +223,17 @@ function KpiRow({ current, previous, compareLabel }) {
   )
 }
 
-function ChartCard({ title, filter, children }) {
+const PRINT_CHART_WIDTH = 720
+const PRINT_CHART_HEIGHT = 210
+
+function ChartCard({ title, filter, children, compact }) {
   return (
-    <section className="bg-white rounded-xl border border-gray-200 shadow-md p-4 sm:p-5 break-inside-avoid">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <section className="branch-print-chart-card bg-white rounded-xl border border-gray-200 shadow-md p-4 sm:p-5">
+      <div
+        className={`flex flex-wrap items-center justify-between gap-3 ${
+          compact ? 'mb-1' : 'mb-4'
+        }`}
+      >
         <h3 className="text-base font-bold text-gray-900">{title}</h3>
         {filter ? (
           <div className="print:hidden" data-print-hide>
@@ -235,7 +241,18 @@ function ChartCard({ title, filter, children }) {
           </div>
         ) : null}
       </div>
-      <div className="w-full h-72 sm:h-80 print:h-72">{children}</div>
+      <div
+        className={`branch-print-chart w-full ${
+          compact ? '' : 'h-72 sm:h-80'
+        }`}
+        style={
+          compact
+            ? { height: PRINT_CHART_HEIGHT, width: '100%' }
+            : undefined
+        }
+      >
+        {children}
+      </div>
     </section>
   )
 }
@@ -260,82 +277,301 @@ function buildTrendRows(referrals, months, insuranceFilter) {
   })
 }
 
-function TripleTrendChart({ data }) {
+function TripleTrendChart({ data, compact }) {
+  const margin = compact
+    ? { top: 18, right: 12, left: 0, bottom: 4 }
+    : { top: 28, right: 16, left: 0, bottom: 4 }
+  const tickSize = compact ? 9 : 11
+  const labelSize = compact ? 8 : 10
+  const dotR = compact ? 2 : 3
+
+  const content = [
+    <CartesianGrid key="grid" strokeDasharray="3 3" vertical={false} />,
+    <XAxis key="x" dataKey="name" tick={{ fontSize: tickSize }} />,
+    <YAxis key="y" tick={{ fontSize: tickSize }} allowDecimals={false} />,
+    !compact ? (
+      <Tooltip
+        key="tip"
+        formatter={(value, name, item) => {
+          const row = item?.payload
+          if (!row) return [value, name]
+          if (name?.includes('Able to Accept')) return [row.ableLabel, name]
+          if (
+            name?.includes('Received/Accepted') ||
+            name?.includes('Accepted')
+          ) {
+            return [row.acceptedLabel, name]
+          }
+          if (name?.includes('Not Admitted')) {
+            return [row.notAdmittedLabel, name]
+          }
+          return [value, name]
+        }}
+      />
+    ) : null,
+    <Legend
+      key="legend"
+      verticalAlign="top"
+      align="center"
+      wrapperStyle={{
+        paddingBottom: compact ? 4 : 12,
+        fontSize: compact ? 9 : 12,
+      }}
+    />,
+    <Line
+      key="able"
+      type="monotone"
+      dataKey="able"
+      name="Able to Accept (% of total able)"
+      stroke={TREND_ABLE}
+      strokeWidth={2}
+      dot={{ r: dotR, fill: TREND_ABLE }}
+      activeDot={compact ? false : { r: 5 }}
+      isAnimationActive={!compact}
+    >
+      <LabelList
+        dataKey="ableLabel"
+        position="top"
+        style={{ fill: TREND_ABLE, fontSize: labelSize, fontWeight: 600 }}
+      />
+    </Line>,
+    <Line
+      key="accepted"
+      type="monotone"
+      dataKey="accepted"
+      name="Received/Accepted (% of able)"
+      stroke={TREND_ACCEPTED}
+      strokeWidth={2}
+      dot={{ r: dotR, fill: TREND_ACCEPTED }}
+      activeDot={compact ? false : { r: 5 }}
+      isAnimationActive={!compact}
+    >
+      <LabelList
+        dataKey="acceptedLabel"
+        position="top"
+        style={{
+          fill: TREND_ACCEPTED,
+          fontSize: labelSize,
+          fontWeight: 600,
+        }}
+      />
+    </Line>,
+    <Line
+      key="notAdmitted"
+      type="monotone"
+      dataKey="notAdmitted"
+      name="Not Admitted (% of accepted)"
+      stroke={TREND_NOT_ADMITTED}
+      strokeWidth={2}
+      dot={{ r: dotR, fill: TREND_NOT_ADMITTED }}
+      activeDot={compact ? false : { r: 5 }}
+      isAnimationActive={!compact}
+    >
+      <LabelList
+        dataKey="notAdmittedLabel"
+        position="top"
+        style={{
+          fill: TREND_NOT_ADMITTED,
+          fontSize: labelSize,
+          fontWeight: 600,
+        }}
+      />
+    </Line>,
+  ]
+
+  // Fixed pixel size for print — ResponsiveContainer often measures 0 in print preview
+  if (compact) {
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: PRINT_CHART_HEIGHT,
+          overflow: 'hidden',
+        }}
+      >
+        <LineChart
+          width={PRINT_CHART_WIDTH}
+          height={PRINT_CHART_HEIGHT}
+          data={data}
+          margin={margin}
+        >
+          {content}
+        </LineChart>
+      </div>
+    )
+  }
+
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data} margin={{ top: 28, right: 16, left: 0, bottom: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-        <Tooltip
-          formatter={(value, name, item) => {
-            const row = item?.payload
-            if (!row) return [value, name]
-            if (name?.includes('Able to Accept')) return [row.ableLabel, name]
-            if (
-              name?.includes('Received/Accepted') ||
-              name?.includes('Accepted')
-            ) {
-              return [row.acceptedLabel, name]
-            }
-            if (name?.includes('Not Admitted')) {
-              return [row.notAdmittedLabel, name]
-            }
-            return [value, name]
-          }}
-        />
-        <Legend
-          verticalAlign="top"
-          align="center"
-          wrapperStyle={{ paddingBottom: 12, fontSize: 12 }}
-        />
-        <Line
-          type="monotone"
-          dataKey="able"
-          name="Able to Accept (% of total able)"
-          stroke={TREND_ABLE}
-          strokeWidth={2}
-          dot={{ r: 3, fill: TREND_ABLE }}
-          activeDot={{ r: 5 }}
-        >
-          <LabelList
-            dataKey="ableLabel"
-            position="top"
-            style={{ fill: TREND_ABLE, fontSize: 10, fontWeight: 600 }}
-          />
-        </Line>
-        <Line
-          type="monotone"
-          dataKey="accepted"
-          name="Received/Accepted (% of able)"
-          stroke={TREND_ACCEPTED}
-          strokeWidth={2}
-          dot={{ r: 3, fill: TREND_ACCEPTED }}
-          activeDot={{ r: 5 }}
-        >
-          <LabelList
-            dataKey="acceptedLabel"
-            position="top"
-            style={{ fill: TREND_ACCEPTED, fontSize: 10, fontWeight: 600 }}
-          />
-        </Line>
-        <Line
-          type="monotone"
-          dataKey="notAdmitted"
-          name="Not Admitted (% of accepted)"
-          stroke={TREND_NOT_ADMITTED}
-          strokeWidth={2}
-          dot={{ r: 3, fill: TREND_NOT_ADMITTED }}
-          activeDot={{ r: 5 }}
-        >
-          <LabelList
-            dataKey="notAdmittedLabel"
-            position="top"
-            style={{ fill: TREND_NOT_ADMITTED, fontSize: 10, fontWeight: 600 }}
-          />
-        </Line>
+      <LineChart data={data} margin={margin}>
+        {content}
       </LineChart>
     </ResponsiveContainer>
+  )
+}
+
+function InsuranceBarChart({ data, compact }) {
+  if (!data.length) {
+    return (
+      <div className="h-full flex items-center justify-center text-sm text-gray-500">
+        No insurance funnel data for this facility and range.
+      </div>
+    )
+  }
+
+  const margin = compact
+    ? { top: 16, right: 12, left: 0, bottom: 4 }
+    : { top: 5, right: 5, left: 5, bottom: 5 }
+  const labelSize = compact ? 8 : 10
+
+  const content = [
+    <CartesianGrid key="grid" strokeDasharray="3 3" vertical={false} />,
+    <XAxis
+      key="x"
+      dataKey="name"
+      tick={{ fontSize: compact ? 8 : 10 }}
+      interval={0}
+    />,
+    <YAxis
+      key="y"
+      tick={{ fontSize: compact ? 9 : 11 }}
+      allowDecimals={false}
+    />,
+    !compact ? <Tooltip key="tip" /> : null,
+    <Legend key="legend" wrapperStyle={{ fontSize: compact ? 9 : 12 }} />,
+    <Bar
+      key="able"
+      dataKey="able"
+      name="Able to Accept"
+      fill={ABLE_COLOR}
+      radius={[4, 4, 0, 0]}
+      label={{ position: 'top', fontSize: labelSize }}
+      isAnimationActive={!compact}
+    />,
+    <Bar
+      key="accepted"
+      dataKey="accepted"
+      name="Received/Accepted"
+      fill={ACCEPTED_COLOR}
+      radius={[4, 4, 0, 0]}
+      label={{ position: 'top', fontSize: labelSize }}
+      isAnimationActive={!compact}
+    />,
+  ]
+
+  if (compact) {
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: PRINT_CHART_HEIGHT,
+          overflow: 'hidden',
+        }}
+      >
+        <BarChart
+          width={PRINT_CHART_WIDTH}
+          height={PRINT_CHART_HEIGHT}
+          data={data}
+          barGap={4}
+          barCategoryGap="18%"
+          margin={margin}
+        >
+          {content}
+        </BarChart>
+      </div>
+    )
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart
+        data={data}
+        barGap={4}
+        barCategoryGap="18%"
+        margin={margin}
+      >
+        {content}
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+function HouseBlock({
+  house,
+  location,
+  monthLabel,
+  compareLabel,
+  insuranceRange,
+  onInsuranceRangeChange,
+  monthRangeOptions,
+  compact,
+}) {
+  return (
+    <div className="branch-house-print-page space-y-5">
+      <div className="branch-print-house-header">
+        <h3 className="text-2xl sm:text-[1.65rem] font-serif font-semibold text-luxe-text tracking-tight print:text-xl">
+          {house.name}
+        </h3>
+        <p className="hidden print:block text-xs text-gray-500 mt-0.5">
+          {location}
+          {monthLabel ? ` · ${monthLabel}` : ''}
+        </p>
+      </div>
+
+      <KpiRow
+        current={house.current}
+        previous={house.previous}
+        compareLabel={compareLabel}
+      />
+
+      <div className="branch-print-charts space-y-5">
+        <ChartCard
+          title="Able to Accept, Received/Accepted & Not Admitted — Trend"
+          compact={compact}
+        >
+          <TripleTrendChart
+            key={compact ? 'trend-print' : 'trend-screen'}
+            data={house.trendData}
+            compact={compact}
+          />
+        </ChartCard>
+
+        <ChartCard
+          title="Able to Accept, Received/Accepted by Insurance"
+          compact={compact}
+          filter={
+            <select
+              value={insuranceRange}
+              onChange={(e) => onInsuranceRangeChange(Number(e.target.value))}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/30"
+            >
+              {monthRangeOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.value === 1 ? '1 Month' : `${opt.value} Months`}
+                </option>
+              ))}
+            </select>
+          }
+        >
+          <InsuranceBarChart
+            key={compact ? 'ins-print' : 'ins-screen'}
+            data={house.ableAcceptedByInsurance}
+            compact={compact}
+          />
+        </ChartCard>
+
+        <ChartCard
+          title="Medicare — Able to Accept, Received/Accepted & Not Admitted"
+          compact={compact}
+        >
+          <TripleTrendChart
+            key={compact ? 'med-print' : 'med-screen'}
+            data={house.medicareTrendData}
+            compact={compact}
+          />
+        </ChartCard>
+      </div>
+    </div>
   )
 }
 
@@ -348,9 +584,10 @@ export default function BranchComparison() {
   const [houses, setHouses] = useState([])
   const [referrals, setReferrals] = useState([])
 
-  const [scope, setScope] = useState('all')
+  const [selectedLocation, setSelectedLocation] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('')
   const [insuranceRange, setInsuranceRange] = useState(2)
+  const [printCompact, setPrintCompact] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -373,52 +610,50 @@ export default function BranchComparison() {
     load()
   }, [load])
 
-  useEffect(() => {
-    if (!isSuperAdmin && user?.location && scope === 'all') {
-      setScope(`loc:${user.location}`)
-    }
-  }, [isSuperAdmin, user?.location, scope])
-
   const visibleHouses = useMemo(() => {
     if (isSuperAdmin) return houses
     return houses.filter((h) => h.location === user?.location)
   }, [houses, isSuperAdmin, user?.location])
 
-  const housesByLocation = useMemo(() => {
-    const map = {}
-    visibleHouses.forEach((house) => {
-      if (!map[house.location]) map[house.location] = []
-      map[house.location].push(house)
-    })
-    Object.values(map).forEach((list) =>
-      list.sort((a, b) => a.name.localeCompare(b.name))
-    )
-    return map
+  const locations = useMemo(() => {
+    const set = new Set(visibleHouses.map((h) => h.location).filter(Boolean))
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [visibleHouses])
 
-  const filteredReferrals = useMemo(() => {
-    let list = referrals
-    if (!isSuperAdmin && user?.location) {
-      list = list.filter((r) => r.location === user.location)
+  useEffect(() => {
+    if (!locations.length) {
+      setSelectedLocation('')
+      return
     }
-    if (scope === 'all') return list
-    if (scope.startsWith('loc:')) {
-      const location = scope.slice(4)
-      return list.filter((r) => r.location === location)
+    if (!selectedLocation || !locations.includes(selectedLocation)) {
+      setSelectedLocation(
+        !isSuperAdmin && user?.location && locations.includes(user.location)
+          ? user.location
+          : locations[0]
+      )
     }
-    if (scope.startsWith('house:')) {
-      const id = scope.slice(6)
-      return list.filter((r) => r.houseId === id)
-    }
-    return list
-  }, [referrals, scope, isSuperAdmin, user?.location])
+  }, [locations, selectedLocation, isSuperAdmin, user?.location])
+
+  const locationHouses = useMemo(() => {
+    if (!selectedLocation) return []
+    return visibleHouses
+      .filter(
+        (h) => h.location === selectedLocation && h.status !== 'Coming Soon'
+      )
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [visibleHouses, selectedLocation])
+
+  const locationReferrals = useMemo(() => {
+    if (!selectedLocation) return []
+    return referrals.filter((r) => r.location === selectedLocation)
+  }, [referrals, selectedLocation])
 
   const monthOptions = useMemo(() => {
     const months = Array.from(
-      new Set(filteredReferrals.map((r) => r.month).filter(Boolean))
+      new Set(locationReferrals.map((r) => r.month).filter(Boolean))
     ).sort()
     return months.length ? months : [monthKeyFromDate(new Date())]
-  }, [filteredReferrals])
+  }, [locationReferrals])
 
   useEffect(() => {
     if (!selectedMonth || !monthOptions.includes(selectedMonth)) {
@@ -431,54 +666,9 @@ export default function BranchComparison() {
     [selectedMonth]
   )
 
-  const current = useMemo(
-    () =>
-      selectedMonth
-        ? aggregateReferrals(filteredReferrals, new Set([selectedMonth]))
-        : emptyMetrics(),
-    [filteredReferrals, selectedMonth]
-  )
-
-  const previous = useMemo(
-    () =>
-      previousMonth
-        ? aggregateReferrals(filteredReferrals, new Set([previousMonth]))
-        : emptyMetrics(),
-    [filteredReferrals, previousMonth]
-  )
-
   const compareLabel = previousMonth
     ? formatMonthShort(previousMonth)
     : 'prior period'
-
-  const facilitySections = useMemo(() => {
-    if (scope === 'all' || !selectedMonth) return []
-
-    let facilities = visibleHouses.filter((h) => h.status !== 'Coming Soon')
-
-    if (scope.startsWith('loc:')) {
-      const location = scope.slice(4)
-      facilities = facilities.filter((h) => h.location === location)
-    } else if (scope.startsWith('house:')) {
-      const id = scope.slice(6)
-      facilities = facilities.filter((h) => h.id === id)
-    } else {
-      return []
-    }
-
-    const currentSet = new Set([selectedMonth])
-    const previousSet = previousMonth ? new Set([previousMonth]) : new Set()
-
-    return facilities.map((house) => {
-      const houseRefs = referrals.filter((r) => r.houseId === String(house.id))
-      return {
-        id: house.id,
-        name: house.name,
-        current: aggregateReferrals(houseRefs, currentSet),
-        previous: aggregateReferrals(houseRefs, previousSet),
-      }
-    })
-  }, [visibleHouses, scope, referrals, selectedMonth, previousMonth])
 
   const chartMonths = useMemo(() => {
     if (!selectedMonth) return []
@@ -489,74 +679,91 @@ export default function BranchComparison() {
     ).map((p) => p.key)
   }, [selectedMonth, insuranceRange])
 
-  const trendData = useMemo(
-    () => buildTrendRows(filteredReferrals, chartMonths),
-    [filteredReferrals, chartMonths]
-  )
+  const houseBlocks = useMemo(() => {
+    if (!selectedMonth || !locationHouses.length) return []
 
-  const medicareTrendData = useMemo(
-    () => buildTrendRows(filteredReferrals, chartMonths, isMedicareInsurance),
-    [filteredReferrals, chartMonths]
-  )
+    const currentSet = new Set([selectedMonth])
+    const previousSet = previousMonth ? new Set([previousMonth]) : new Set()
 
-  const ableAcceptedByInsurance = useMemo(() => {
-    const metrics = aggregateReferrals(
-      filteredReferrals,
-      new Set(chartMonths)
-    )
-    return Object.entries(metrics.byInsurance)
-      .map(([name, vals]) => ({
-        name,
-        able: vals.able || 0,
-        accepted: vals.accepted || 0,
-      }))
-      .filter((row) => row.able > 0 || row.accepted > 0)
-      .sort((a, b) => a.name.localeCompare(b.name))
-  }, [filteredReferrals, chartMonths])
+    return locationHouses.map((house) => {
+      const houseRefs = referrals.filter((r) => r.houseId === String(house.id))
+      const metrics = aggregateReferrals(houseRefs, new Set(chartMonths))
+      const ableAcceptedByInsurance = Object.entries(metrics.byInsurance)
+        .map(([name, vals]) => ({
+          name,
+          able: vals.able || 0,
+          accepted: vals.accepted || 0,
+        }))
+        .filter((row) => row.able > 0 || row.accepted > 0)
+        .sort((a, b) => a.name.localeCompare(b.name))
 
-  const scopeLabel = useMemo(() => {
-    if (scope === 'all') return 'All Locations (All Facilities)'
-    if (scope.startsWith('loc:')) return `${scope.slice(4)} (All Facilities)`
-    if (scope.startsWith('house:')) {
-      const house = visibleHouses.find((h) => h.id === scope.slice(6))
-      return house ? `${house.name}, ${house.location}` : 'Facility'
-    }
-    return 'All Locations (All Facilities)'
-  }, [scope, visibleHouses])
+      return {
+        id: house.id,
+        name: house.name,
+        current: aggregateReferrals(houseRefs, currentSet),
+        previous: aggregateReferrals(houseRefs, previousSet),
+        trendData: buildTrendRows(houseRefs, chartMonths),
+        medicareTrendData: buildTrendRows(
+          houseRefs,
+          chartMonths,
+          isMedicareInsurance
+        ),
+        ableAcceptedByInsurance,
+      }
+    })
+  }, [
+    locationHouses,
+    referrals,
+    selectedMonth,
+    previousMonth,
+    chartMonths,
+  ])
 
   const monthRangeOptions = RANGE_OPTIONS.monthly
+
+  const printMonthLabel = selectedMonth
+    ? formatMonthLabel(selectedMonth) || formatMonthShort(selectedMonth)
+    : ''
+
+  const handleDownloadPdf = () => {
+    document.body.classList.add('branch-comparison-printing')
+    setPrintCompact(true)
+
+    const cleanup = () => {
+      document.body.classList.remove('branch-comparison-printing')
+      setPrintCompact(false)
+      window.removeEventListener('afterprint', cleanup)
+    }
+    window.addEventListener('afterprint', cleanup)
+
+    // Wait for fixed-size charts to mount and paint, then print
+    window.setTimeout(() => {
+      window.print()
+    }, 500)
+  }
 
   return (
     <PageShell
       title="Branch Comparison"
-      subtitle="Compare the latest period against the one before it — all locations or for a single facility."
+      subtitle="Select a location to compare each facility — KPIs and charts, one house at a time."
       bare
-      fullWidth
+      headerClassName="print:hidden"
       actions={
         <div
           className="flex flex-wrap items-center gap-2 print:hidden"
           data-print-hide
         >
           <select
-            value={scope}
-            onChange={(e) => setScope(e.target.value)}
+            value={selectedLocation}
+            onChange={(e) => setSelectedLocation(e.target.value)}
             className="min-w-[12rem] px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/30"
-            title={scopeLabel}
+            disabled={!locations.length}
           >
-            {isSuperAdmin && (
-              <option value="all">All Locations (All Facilities)</option>
-            )}
-            {Object.entries(housesByLocation).map(([location, list]) => (
-              <optgroup key={location} label={location}>
-                <option value={`loc:${location}`}>
-                  {location} (All Facilities)
-                </option>
-                {list.map((house) => (
-                  <option key={house.id} value={`house:${house.id}`}>
-                    {house.name}
-                  </option>
-                ))}
-              </optgroup>
+            {!locations.length && <option value="">No locations</option>}
+            {locations.map((location) => (
+              <option key={location} value={location}>
+                {location}
+              </option>
             ))}
           </select>
 
@@ -572,7 +779,7 @@ export default function BranchComparison() {
 
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={handleDownloadPdf}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-luxe-btn hover:bg-luxe-olive-dark text-white rounded-lg transition"
           >
             <svg
@@ -605,87 +812,29 @@ export default function BranchComparison() {
         </div>
       )}
 
-      {!loading && !error && (
-        <div className="space-y-8">
-          <KpiRow
-            current={current}
-            previous={previous}
-            compareLabel={compareLabel}
-          />
+      {!loading && !error && houseBlocks.length === 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-md p-10 text-center text-gray-500">
+          {selectedLocation
+            ? `No active facilities found for ${selectedLocation}.`
+            : 'Select a location to view facility comparisons.'}
+        </div>
+      )}
 
-          {facilitySections.map((facility) => (
-            <div key={facility.id} className="space-y-3">
-              <h3 className="text-2xl sm:text-[1.65rem] font-serif font-semibold text-luxe-text tracking-tight">
-                {facility.name}
-              </h3>
-              <KpiRow
-                current={facility.current}
-                previous={facility.previous}
-                compareLabel={compareLabel}
-              />
-            </div>
+      {!loading && !error && houseBlocks.length > 0 && (
+        <div className="space-y-12 print:space-y-0">
+          {houseBlocks.map((house) => (
+            <HouseBlock
+              key={house.id}
+              house={house}
+              location={selectedLocation}
+              monthLabel={printMonthLabel}
+              compareLabel={compareLabel}
+              insuranceRange={insuranceRange}
+              onInsuranceRangeChange={setInsuranceRange}
+              monthRangeOptions={monthRangeOptions}
+              compact={printCompact}
+            />
           ))}
-
-          <ChartCard title="Able to Accept, Received/Accepted & Not Admitted — Trend">
-            <TripleTrendChart data={trendData} />
-          </ChartCard>
-
-          <ChartCard
-            title="Able to Accept, Received/Accepted by Insurance"
-            filter={
-              <select
-                value={insuranceRange}
-                onChange={(e) => setInsuranceRange(Number(e.target.value))}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/30"
-              >
-                {monthRangeOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.value === 1
-                      ? '1 Month'
-                      : `${opt.value} Months`}
-                  </option>
-                ))}
-              </select>
-            }
-          >
-            {ableAcceptedByInsurance.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-sm text-gray-500">
-                No insurance funnel data for this scope and range.
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={ableAcceptedByInsurance}
-                  barGap={4}
-                  barCategoryGap="18%"
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar
-                    dataKey="able"
-                    name="Able to Accept"
-                    fill={ABLE_COLOR}
-                    radius={[4, 4, 0, 0]}
-                    label={{ position: 'top', fontSize: 10 }}
-                  />
-                  <Bar
-                    dataKey="accepted"
-                    name="Received/Accepted"
-                    fill={ACCEPTED_COLOR}
-                    radius={[4, 4, 0, 0]}
-                    label={{ position: 'top', fontSize: 10 }}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </ChartCard>
-
-          <ChartCard title="Medicare — Able to Accept, Received/Accepted & Not Admitted">
-            <TripleTrendChart data={medicareTrendData} />
-          </ChartCard>
         </div>
       )}
     </PageShell>

@@ -31,7 +31,7 @@ function create({ name, color }) {
     throw err
   }
 
-  const normalizedColor = ['green', 'yellow', 'red'].includes(color)
+  const normalizedColor = ['green', 'yellow', 'red', 'grey'].includes(color)
     ? color
     : 'green'
 
@@ -64,7 +64,7 @@ function update(id, { name, color }) {
     throw err
   }
 
-  const normalizedColor = ['green', 'yellow', 'red'].includes(color)
+  const normalizedColor = ['green', 'yellow', 'red', 'grey'].includes(color)
     ? color
     : types[index].color
 
