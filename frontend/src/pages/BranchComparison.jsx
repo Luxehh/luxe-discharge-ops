@@ -225,9 +225,9 @@ function KpiRow({ current, previous, compareLabel }) {
 }
 
 const PRINT_CHART_WIDTH = 720
-const PRINT_CHART_HEIGHT = 138
-const PRINT_CIRCLE_HEIGHT = 112
-const PRINT_CIRCLE_WIDTH = 240
+const PRINT_CHART_HEIGHT = 200
+const PRINT_CIRCLE_HEIGHT = 168
+const PRINT_CIRCLE_WIDTH = 280
 
 function ChartCard({ title, filter, children, compact }) {
   return (
@@ -282,10 +282,10 @@ function buildTrendRows(referrals, months, insuranceFilter) {
 
 function TripleMetricBarChart({ data, compact }) {
   const margin = compact
-    ? { top: 14, right: 8, left: -4, bottom: 0 }
+    ? { top: 20, right: 10, left: 0, bottom: 2 }
     : { top: 28, right: 16, left: 0, bottom: 4 }
-  const tickSize = compact ? 8 : 11
-  const labelSize = compact ? 7 : 10
+  const tickSize = compact ? 9 : 11
+  const labelSize = compact ? 8 : 10
 
   const content = [
     <CartesianGrid key="grid" strokeDasharray="3 3" vertical={false} />,
@@ -883,27 +883,54 @@ export default function BranchComparison() {
     : ''
 
   const handleDownloadPdf = () => {
-    document.body.classList.add('branch-comparison-printing')
-    setPrintCompact(true)
+    let cleaned = false
+    let safetyTimer = null
 
     const cleanup = () => {
+      if (cleaned) return
+      cleaned = true
       document.body.classList.remove('branch-comparison-printing')
       setPrintCompact(false)
       window.removeEventListener('afterprint', cleanup)
+      mediaQuery?.removeEventListener?.('change', onMediaChange)
+      if (safetyTimer) window.clearTimeout(safetyTimer)
     }
+
+    const onMediaChange = (event) => {
+      // When leaving print preview / dialog, restore normal screen layout
+      if (!event.matches) cleanup()
+    }
+
+    const mediaQuery =
+      typeof window.matchMedia === 'function'
+        ? window.matchMedia('print')
+        : null
+    mediaQuery?.addEventListener?.('change', onMediaChange)
     window.addEventListener('afterprint', cleanup)
+
+    document.body.classList.add('branch-comparison-printing')
+    setPrintCompact(true)
 
     // Wait for fixed-size charts to mount and paint, then print
     window.setTimeout(() => {
       window.print()
-    }, 500)
+      // Fallback if afterprint never fires (some Windows PDF drivers)
+      safetyTimer = window.setTimeout(cleanup, 1500)
+    }, 450)
   }
+
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('branch-comparison-printing')
+    }
+  }, [])
 
   return (
     <PageShell
       title="Branch Comparison"
       subtitle="Select a location to compare each facility — KPIs and charts, one house at a time."
       bare
+      fullWidth
       headerClassName="print:hidden"
       actions={
         <div

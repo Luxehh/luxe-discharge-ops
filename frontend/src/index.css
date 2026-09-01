@@ -80,15 +80,13 @@ body {
     padding: 0 !important;
   }
 
-  /* Branch Comparison: exactly 1 house = 1 printed page */
+  /* Branch Comparison: exactly 1 house = 1 printed page (fill page height) */
   body.branch-comparison-printing .branch-house-print-page {
     break-after: page;
     page-break-after: always;
-    break-inside: avoid;
-    page-break-inside: avoid;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 10px;
     width: 100%;
   }
 
@@ -111,7 +109,8 @@ body {
   body.branch-comparison-printing .branch-print-charts {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 10px;
+    flex: 1 1 auto;
   }
 
   body.branch-comparison-printing .branch-print-charts.space-y-5 > :not([hidden]) ~ :not([hidden]) {
@@ -119,68 +118,68 @@ body {
   }
 
   body.branch-comparison-printing .branch-print-house-header h3 {
-    font-size: 1.1rem !important;
+    font-size: 1.25rem !important;
     margin: 0 !important;
     line-height: 1.2 !important;
   }
 
   body.branch-comparison-printing .branch-print-house-header p {
-    margin-top: 1px !important;
-    font-size: 10px !important;
+    margin-top: 2px !important;
+    font-size: 11px !important;
   }
 
   /* KPI cards: single row of 6 in PDF */
   body.branch-comparison-printing .branch-kpi-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-    gap: 4px !important;
+    gap: 6px !important;
     margin: 0 !important;
   }
 
   body.branch-comparison-printing .branch-kpi-grid > div {
     box-shadow: none !important;
-    padding: 4px 5px !important;
+    padding: 6px 7px !important;
   }
 
   body.branch-comparison-printing .branch-kpi-grid .text-2xl {
-    font-size: 0.95rem !important;
+    font-size: 1.05rem !important;
   }
 
   body.branch-comparison-printing .branch-kpi-grid .text-\[11px\] {
-    font-size: 7.5px !important;
-    margin-top: 2px !important;
-    line-height: 1.15 !important;
+    font-size: 8px !important;
+    margin-top: 3px !important;
+    line-height: 1.2 !important;
   }
 
   body.branch-comparison-printing .branch-kpi-grid .mt-1\.5 {
-    margin-top: 2px !important;
+    margin-top: 4px !important;
   }
 
-  /* Chart cards — compact so house fits one page */
+  /* Chart cards — taller to use full page */
   body.branch-comparison-printing .branch-print-chart-card {
     background: #ffffff !important;
     border: 1px solid #e5e7eb !important;
     box-shadow: none !important;
-    padding: 4px 6px !important;
+    padding: 8px 10px !important;
     margin: 0 !important;
-    border-radius: 6px !important;
+    border-radius: 8px !important;
     overflow: hidden !important;
     flex-shrink: 0;
   }
 
   body.branch-comparison-printing .branch-print-chart-card > div:first-child {
-    margin-bottom: 2px !important;
+    margin-bottom: 4px !important;
   }
 
   body.branch-comparison-printing .branch-print-chart-card h3 {
-    font-size: 10px !important;
+    font-size: 11px !important;
     margin: 0 !important;
-    line-height: 1.2 !important;
+    line-height: 1.25 !important;
   }
 
   body.branch-comparison-printing .branch-print-chart {
-    height: 138px !important;
-    min-height: 138px !important;
-    max-height: 138px !important;
+    height: 200px !important;
+    min-height: 200px !important;
+    max-height: 200px !important;
     overflow: hidden !important;
     position: relative !important;
   }
@@ -193,13 +192,14 @@ body {
     overflow: visible !important;
   }
 
-  /* Medicare circles stay side-by-side and compact */
+  /* Medicare circles stay side-by-side and fill remaining space */
   body.branch-comparison-printing .branch-print-medicare-grid {
     grid-template-columns: 1fr 1fr !important;
-    gap: 4px !important;
+    gap: 8px !important;
+    justify-items: center;
   }
 
   body.branch-comparison-printing .branch-print-medicare .text-xs {
-    font-size: 9px !important;
+    font-size: 10px !important;
   }
 }
