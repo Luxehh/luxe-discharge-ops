@@ -3,10 +3,11 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   LabelList,
   Legend,
-  Line,
-  LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -277,13 +278,12 @@ function buildTrendRows(referrals, months, insuranceFilter) {
   })
 }
 
-function TripleTrendChart({ data, compact }) {
+function TripleMetricBarChart({ data, compact }) {
   const margin = compact
     ? { top: 18, right: 12, left: 0, bottom: 4 }
     : { top: 28, right: 16, left: 0, bottom: 4 }
   const tickSize = compact ? 9 : 11
   const labelSize = compact ? 8 : 10
-  const dotR = compact ? 2 : 3
 
   const content = [
     <CartesianGrid key="grid" strokeDasharray="3 3" vertical={false} />,
@@ -318,15 +318,12 @@ function TripleTrendChart({ data, compact }) {
         fontSize: compact ? 9 : 12,
       }}
     />,
-    <Line
+    <Bar
       key="able"
-      type="monotone"
       dataKey="able"
       name="Able to Accept (% of total able)"
-      stroke={TREND_ABLE}
-      strokeWidth={2}
-      dot={{ r: dotR, fill: TREND_ABLE }}
-      activeDot={compact ? false : { r: 5 }}
+      fill={TREND_ABLE}
+      radius={[4, 4, 0, 0]}
       isAnimationActive={!compact}
     >
       <LabelList
@@ -334,16 +331,13 @@ function TripleTrendChart({ data, compact }) {
         position="top"
         style={{ fill: TREND_ABLE, fontSize: labelSize, fontWeight: 600 }}
       />
-    </Line>,
-    <Line
+    </Bar>,
+    <Bar
       key="accepted"
-      type="monotone"
       dataKey="accepted"
       name="Received/Accepted (% of able)"
-      stroke={TREND_ACCEPTED}
-      strokeWidth={2}
-      dot={{ r: dotR, fill: TREND_ACCEPTED }}
-      activeDot={compact ? false : { r: 5 }}
+      fill={TREND_ACCEPTED}
+      radius={[4, 4, 0, 0]}
       isAnimationActive={!compact}
     >
       <LabelList
@@ -355,16 +349,13 @@ function TripleTrendChart({ data, compact }) {
           fontWeight: 600,
         }}
       />
-    </Line>,
-    <Line
+    </Bar>,
+    <Bar
       key="notAdmitted"
-      type="monotone"
       dataKey="notAdmitted"
       name="Not Admitted (% of accepted)"
-      stroke={TREND_NOT_ADMITTED}
-      strokeWidth={2}
-      dot={{ r: dotR, fill: TREND_NOT_ADMITTED }}
-      activeDot={compact ? false : { r: 5 }}
+      fill={TREND_NOT_ADMITTED}
+      radius={[4, 4, 0, 0]}
       isAnimationActive={!compact}
     >
       <LabelList
@@ -376,7 +367,7 @@ function TripleTrendChart({ data, compact }) {
           fontWeight: 600,
         }}
       />
-    </Line>,
+    </Bar>,
   ]
 
   // Fixed pixel size for print — ResponsiveContainer often measures 0 in print preview
@@ -389,24 +380,110 @@ function TripleTrendChart({ data, compact }) {
           overflow: 'hidden',
         }}
       >
-        <LineChart
+        <BarChart
           width={PRINT_CHART_WIDTH}
           height={PRINT_CHART_HEIGHT}
           data={data}
+          barGap={4}
+          barCategoryGap="22%"
           margin={margin}
         >
           {content}
-        </LineChart>
+        </BarChart>
       </div>
     )
   }
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data} margin={margin}>
+      <BarChart
+        data={data}
+        barGap={4}
+        barCategoryGap="22%"
+        margin={margin}
+      >
         {content}
-      </LineChart>
+      </BarChart>
     </ResponsiveContainer>
+  )
+}
+
+function QuietCircleChart({ title, value, total, color, centerLabel, compact }) {
+  const safeTotal = Math.max(Number(total) || 0, Number(value) || 0, 1)
+  const filled = Math.max(0, Number(value) || 0)
+  const rest = Math.max(0, safeTotal - filled)
+  const data = [
+    { name: 'filled', value: filled || 0.0001 },
+    { name: 'rest', value: rest || 0.0001 },
+  ]
+  const pct = pctLabel(filled, safeTotal)
+  const chartH = compact ? PRINT_CHART_HEIGHT - 28 : undefined
+
+  const pie = (
+    <Pie
+      data={data}
+      dataKey="value"
+      startAngle={90}
+      endAngle={-270}
+      innerRadius="45%"
+      outerRadius="90%"
+      stroke="none"
+      paddingAngle={0}
+      isAnimationActive={!compact}
+    >
+      <Cell fill={color} />
+      <Cell fill="#e8e4db" />
+    </Pie>
+  )
+
+  return (
+    <div className="flex flex-col items-center">
+      <p
+        className={`font-semibold text-luxe-text mb-1 ${
+          compact ? 'text-xs' : 'text-sm mb-2'
+        }`}
+      >
+        {title}
+      </p>
+      <div
+        className={`relative w-full ${compact ? '' : 'max-w-md h-72 sm:h-80'}`}
+        style={
+          compact
+            ? { height: chartH, width: '100%', maxWidth: 320 }
+            : undefined
+        }
+      >
+        {compact ? (
+          <PieChart width={300} height={chartH}>
+            {pie}
+          </PieChart>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>{pie}</PieChart>
+          </ResponsiveContainer>
+        )}
+        <div
+          className={`pointer-events-none absolute inset-0 flex flex-col items-center justify-center ${
+            compact ? 'px-10' : 'px-16 sm:px-20'
+          }`}
+        >
+          <p
+            className={`font-bold text-luxe-text leading-none ${
+              compact ? 'text-xl' : 'text-3xl sm:text-4xl'
+            }`}
+          >
+            {filled}
+          </p>
+          <p
+            className={`text-luxe-muted mt-1 truncate max-w-full text-center ${
+              compact ? 'text-[10px]' : 'text-xs mt-1.5'
+            }`}
+          >
+            {centerLabel || pct}
+          </p>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -526,10 +603,10 @@ function HouseBlock({
 
       <div className="branch-print-charts space-y-5">
         <ChartCard
-          title="Able to Accept, Received/Accepted & Not Admitted — Trend"
+          title="Able to Accept, Received/Accepted & Not Admitted"
           compact={compact}
         >
-          <TripleTrendChart
+          <TripleMetricBarChart
             key={compact ? 'trend-print' : 'trend-screen'}
             data={house.trendData}
             compact={compact}
@@ -560,16 +637,58 @@ function HouseBlock({
           />
         </ChartCard>
 
-        <ChartCard
-          title="Medicare — Able to Accept, Received/Accepted & Not Admitted"
-          compact={compact}
-        >
-          <TripleTrendChart
-            key={compact ? 'med-print' : 'med-screen'}
-            data={house.medicareTrendData}
-            compact={compact}
-          />
-        </ChartCard>
+        <section className="branch-print-chart-card bg-white rounded-xl border border-gray-200 shadow-md p-4 sm:p-5">
+          <div className={compact ? 'mb-1' : 'mb-3'}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-luxe-muted">
+              Medicare Referrals
+            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3 mt-1">
+              <h3 className="text-base font-bold text-gray-900">
+                Able to Accept & Received/Accepted
+              </h3>
+              <p className="text-xs text-luxe-muted">
+                Medicare only · Color: green if Received/Accepted ≥ 70% of Able,
+                otherwise red
+                {' · '}
+                Current rate{' '}
+                <span
+                  className={`font-semibold ${
+                    house.medicare.isGreen
+                      ? 'text-emerald-700'
+                      : 'text-red-700'
+                  }`}
+                >
+                  {house.medicare.acceptanceRate.toFixed(1)}%
+                </span>
+              </p>
+            </div>
+          </div>
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 ${
+              compact ? 'gap-2' : 'gap-4 sm:gap-6'
+            }`}
+          >
+            <QuietCircleChart
+              title="Able to Accept"
+              value={house.medicare.able}
+              total={house.medicare.ableTotal}
+              color={house.medicare.color}
+              centerLabel={pctLabel(house.medicare.able, house.medicare.able)}
+              compact={compact}
+            />
+            <QuietCircleChart
+              title="Received/Accepted"
+              value={house.medicare.accepted}
+              total={Math.max(house.medicare.able, 1)}
+              color={house.medicare.color}
+              centerLabel={pctLabel(
+                house.medicare.accepted,
+                house.medicare.able
+              )}
+              compact={compact}
+            />
+          </div>
+        </section>
       </div>
     </div>
   )
@@ -697,17 +816,31 @@ export default function BranchComparison() {
         .filter((row) => row.able > 0 || row.accepted > 0)
         .sort((a, b) => a.name.localeCompare(b.name))
 
+      const medicareCurrent = aggregateReferrals(
+        houseRefs,
+        currentSet,
+        isMedicareInsurance
+      )
+      const medicareAble = medicareCurrent.able || 0
+      const medicareAccepted = medicareCurrent.accepted || 0
+      const acceptanceRate =
+        medicareAble > 0 ? (medicareAccepted / medicareAble) * 100 : 0
+      const isGreen = acceptanceRate >= 70
+
       return {
         id: house.id,
         name: house.name,
         current: aggregateReferrals(houseRefs, currentSet),
         previous: aggregateReferrals(houseRefs, previousSet),
         trendData: buildTrendRows(houseRefs, chartMonths),
-        medicareTrendData: buildTrendRows(
-          houseRefs,
-          chartMonths,
-          isMedicareInsurance
-        ),
+        medicare: {
+          able: medicareAble,
+          accepted: medicareAccepted,
+          ableTotal: Math.max(medicareAble, 1),
+          acceptanceRate,
+          isGreen,
+          color: isGreen ? '#2F6B4F' : '#B42318',
+        },
         ableAcceptedByInsurance,
       }
     })
