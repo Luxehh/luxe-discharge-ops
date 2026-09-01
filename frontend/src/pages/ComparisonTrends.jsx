@@ -4,10 +4,8 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
-  Line,
-  LineChart,
   LabelList,
+  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -40,9 +38,9 @@ const TYPE_COLORS = {
 const FUNNEL_METRICS = [
   { key: 'totalDischarge', label: 'DC Total' },
   { key: 'dischargeWithHomeHealth', label: 'DC w/ HH' },
-  { key: 'notAble', label: 'Not Accept' },
   { key: 'able', label: 'Able Accept' },
   { key: 'accepted', label: 'Received/Accepted' },
+  { key: 'notAble', label: 'Not Accept' },
   { key: 'notAdmitted', label: 'Not Admitted' },
 ]
 
@@ -269,8 +267,8 @@ export default function ComparisonTrends() {
 
   const [scope, setScope] = useState('all')
   const [periodType, setPeriodType] = useState('monthly')
-  const [rangeCount, setRangeCount] = useState(2)
-  const [chartRange, setChartRange] = useState(2)
+  const [rangeCount, setRangeCount] = useState(1)
+  const [chartRange, setChartRange] = useState(1)
   const [typeMixMonth, setTypeMixMonth] = useState('')
 
   const load = useCallback(async () => {
@@ -464,7 +462,6 @@ export default function ComparisonTrends() {
   }, [insuranceNames, chartPeriodMetrics])
 
   const trendData = useMemo(() => {
-    // Always show monthly points across the selected chart window months
     const monthSet = new Set()
     chartPeriods.forEach((p) => p.months.forEach((m) => monthSet.add(m)))
     const months = Array.from(monthSet).sort()
@@ -543,13 +540,13 @@ export default function ComparisonTrends() {
   const typeMixTotal = typeMixData.reduce((sum, row) => sum + row.value, 0)
 
   const scopeLabel = useMemo(() => {
-    if (scope === 'all') return 'All Locations (All Houses)'
-    if (scope.startsWith('loc:')) return `${scope.slice(4)} (All Houses)`
+    if (scope === 'all') return 'All Locations (Facilities)'
+    if (scope.startsWith('loc:')) return `${scope.slice(4)} (Facilities)`
     if (scope.startsWith('house:')) {
       const house = visibleHouses.find((h) => h.id === scope.slice(6))
       return house ? `${house.name}, ${house.location}` : 'House'
     }
-    return 'All Locations (All Houses)'
+    return 'All Locations (Facilities)'
   }, [scope, visibleHouses])
 
   const rangeOptions = RANGE_OPTIONS[periodType] || RANGE_OPTIONS.monthly
@@ -567,10 +564,10 @@ export default function ComparisonTrends() {
             className="min-w-[12rem] px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/30"
             title={scopeLabel}
           >
-            <option value="all">All Locations (All Houses)</option>
+            <option value="all">All Locations (Facilities)</option>
             {Object.entries(housesByLocation).map(([location, list]) => (
               <optgroup key={location} label={location}>
-                <option value={`loc:${location}`}>{location} (All Houses)</option>
+                <option value={`loc:${location}`}>{location} (Facilities)</option>
                 {list.map((house) => (
                   <option key={house.id} value={`house:${house.id}`}>
                     {house.name}
@@ -801,10 +798,12 @@ export default function ComparisonTrends() {
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard title="Able to Accept, Received/Accepted — Trend">
+          <ChartCard title="Able to Accept, Received/Accepted">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart
+              <BarChart
                 data={trendData}
+                barGap={4}
+                barCategoryGap="22%"
                 margin={{ top: 28, right: 16, left: 0, bottom: 4 }}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -814,8 +813,13 @@ export default function ComparisonTrends() {
                   formatter={(value, name, item) => {
                     const row = item?.payload
                     if (!row) return [value, name]
-                    if (name?.includes('Able to Accept')) return [row.ableLabel, name]
-                    if (name?.includes('Received/Accepted') || name?.includes('Accepted')) {
+                    if (name?.includes('Able to Accept')) {
+                      return [row.ableLabel, name]
+                    }
+                    if (
+                      name?.includes('Received/Accepted') ||
+                      name?.includes('Accepted')
+                    ) {
                       return [row.acceptedLabel, name]
                     }
                     return [value, name]
@@ -826,44 +830,38 @@ export default function ComparisonTrends() {
                   align="center"
                   wrapperStyle={{ paddingBottom: 12, fontSize: 12 }}
                 />
-                <Line
-                  type="monotone"
+                <Bar
                   dataKey="able"
                   name="Able to Accept (% of total able)"
-                  stroke="#E09A2B"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: '#E09A2B' }}
-                  activeDot={{ r: 5 }}
+                  fill="#E09A2B"
+                  radius={[4, 4, 0, 0]}
                 >
                   <LabelList
                     dataKey="ableLabel"
                     position="top"
                     style={{ fill: '#E09A2B', fontSize: 10, fontWeight: 600 }}
                   />
-                </Line>
-                <Line
-                  type="monotone"
+                </Bar>
+                <Bar
                   dataKey="accepted"
                   name="Received/Accepted (% of able)"
-                  stroke="#2F6B4F"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: '#2F6B4F' }}
-                  activeDot={{ r: 5 }}
+                  fill="#2F6B4F"
+                  radius={[4, 4, 0, 0]}
                 >
                   <LabelList
                     dataKey="acceptedLabel"
                     position="top"
                     style={{ fill: '#2F6B4F', fontSize: 10, fontWeight: 600 }}
                   />
-                </Line>
-              </LineChart>
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </ChartCard>
 
           <section className="bg-white rounded-xl border border-gray-200 shadow-md p-4 sm:p-5 break-inside-avoid">
             <div className="mb-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-luxe-muted">
-                Medicare Information
+                Medicare Referrals
               </p>
               <div className="flex flex-wrap items-center justify-between gap-3 mt-1">
                 <h3 className="text-base font-bold text-gray-900">
@@ -902,31 +900,27 @@ export default function ComparisonTrends() {
             </div>
           </section>
 
-          <section className="bg-white rounded-xl border border-gray-200 shadow-md p-4 sm:p-5 break-inside-avoid">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-              <h3 className="text-base font-bold text-gray-900">
-                Insurance Type Mix
-              </h3>
-              <div className="print:hidden" data-print-hide>
-                <select
-                  value={typeMixMonth || latestDataMonth}
-                  onChange={(e) => setTypeMixMonth(e.target.value)}
-                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/30"
-                >
-                  {(typeMixMonthOptions.length
-                    ? typeMixMonthOptions
-                    : [latestDataMonth]
-                  ).map((month) => (
-                    <option key={month} value={month}>
-                      {formatMonthShort(month)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="flex flex-col items-center">
-              {/* Thick donut — hole ~45% diameter, ring fills out to ~90% (matches Luxe dashboard) */}
-              <div className="relative w-full max-w-md h-72 sm:h-80">
+          <ChartCard
+            title="Insurance Type Mix"
+            filter={
+              <select
+                value={typeMixMonth || latestDataMonth}
+                onChange={(e) => setTypeMixMonth(e.target.value)}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/30"
+              >
+                {(typeMixMonthOptions.length
+                  ? typeMixMonthOptions
+                  : [latestDataMonth]
+                ).map((month) => (
+                  <option key={month} value={month}>
+                    {formatMonthShort(month)}
+                  </option>
+                ))}
+              </select>
+            }
+          >
+            <div className="relative h-full w-full flex flex-col">
+              <div className="relative flex-1 min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -946,16 +940,25 @@ export default function ComparisonTrends() {
                       labelLine={false}
                       label={
                         typeMixData.length
-                          ? ({ percent, cx, cy, midAngle, innerRadius, outerRadius }) => {
+                          ? ({
+                              percent,
+                              cx,
+                              cy,
+                              midAngle,
+                              innerRadius,
+                              outerRadius,
+                            }) => {
                               if (!percent || percent < 0.05) return null
                               const RADIAN = Math.PI / 180
                               const radius =
                                 Number(innerRadius) +
                                 (Number(outerRadius) - Number(innerRadius)) * 0.5
                               const x =
-                                Number(cx) + radius * Math.cos(-midAngle * RADIAN)
+                                Number(cx) +
+                                radius * Math.cos(-midAngle * RADIAN)
                               const y =
-                                Number(cy) + radius * Math.sin(-midAngle * RADIAN)
+                                Number(cy) +
+                                radius * Math.sin(-midAngle * RADIAN)
                               return (
                                 <text
                                   x={x}
@@ -987,7 +990,7 @@ export default function ComparisonTrends() {
                     />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-16 sm:px-20">
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-16 sm:px-24 pb-6">
                   <p className="text-3xl sm:text-4xl font-bold text-luxe-text leading-none">
                     {typeMixTotal}
                   </p>
@@ -999,8 +1002,8 @@ export default function ComparisonTrends() {
                   </p>
                 </div>
               </div>
-              {typeMixData.length > 0 && (
-                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-3 px-2">
+              {typeMixData.length > 0 ? (
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-1 shrink-0">
                   {typeMixData.map((entry) => (
                     <div
                       key={entry.name}
@@ -1019,14 +1022,13 @@ export default function ComparisonTrends() {
                     </div>
                   ))}
                 </div>
-              )}
-              {typeMixData.length === 0 && (
-                <p className="text-sm text-gray-500 mt-2">
+              ) : (
+                <p className="text-sm text-gray-500 text-center shrink-0">
                   No insurance type mix for this month.
                 </p>
               )}
             </div>
-          </section>
+          </ChartCard>
 
           {!filteredReferrals.length && (
             <div className="bg-white rounded-xl border border-gray-200 shadow-md p-6 text-center text-gray-500 text-sm">
