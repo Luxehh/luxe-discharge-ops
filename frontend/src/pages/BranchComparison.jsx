@@ -225,7 +225,9 @@ function KpiRow({ current, previous, compareLabel }) {
 }
 
 const PRINT_CHART_WIDTH = 720
-const PRINT_CHART_HEIGHT = 210
+const PRINT_CHART_HEIGHT = 138
+const PRINT_CIRCLE_HEIGHT = 112
+const PRINT_CIRCLE_WIDTH = 240
 
 function ChartCard({ title, filter, children, compact }) {
   return (
@@ -280,10 +282,10 @@ function buildTrendRows(referrals, months, insuranceFilter) {
 
 function TripleMetricBarChart({ data, compact }) {
   const margin = compact
-    ? { top: 18, right: 12, left: 0, bottom: 4 }
+    ? { top: 14, right: 8, left: -4, bottom: 0 }
     : { top: 28, right: 16, left: 0, bottom: 4 }
-  const tickSize = compact ? 9 : 11
-  const labelSize = compact ? 8 : 10
+  const tickSize = compact ? 8 : 11
+  const labelSize = compact ? 7 : 10
 
   const content = [
     <CartesianGrid key="grid" strokeDasharray="3 3" vertical={false} />,
@@ -417,7 +419,6 @@ function QuietCircleChart({ title, value, total, color, centerLabel, compact }) 
     { name: 'rest', value: rest || 0.0001 },
   ]
   const pct = pctLabel(filled, safeTotal)
-  const chartH = compact ? PRINT_CHART_HEIGHT - 28 : undefined
 
   const pie = (
     <Pie
@@ -440,7 +441,7 @@ function QuietCircleChart({ title, value, total, color, centerLabel, compact }) 
     <div className="flex flex-col items-center">
       <p
         className={`font-semibold text-luxe-text mb-1 ${
-          compact ? 'text-xs' : 'text-sm mb-2'
+          compact ? 'text-[10px]' : 'text-sm mb-2'
         }`}
       >
         {title}
@@ -449,12 +450,16 @@ function QuietCircleChart({ title, value, total, color, centerLabel, compact }) 
         className={`relative w-full ${compact ? '' : 'max-w-md h-72 sm:h-80'}`}
         style={
           compact
-            ? { height: chartH, width: '100%', maxWidth: 320 }
+            ? {
+                height: PRINT_CIRCLE_HEIGHT,
+                width: PRINT_CIRCLE_WIDTH,
+                maxWidth: '100%',
+              }
             : undefined
         }
       >
         {compact ? (
-          <PieChart width={300} height={chartH}>
+          <PieChart width={PRINT_CIRCLE_WIDTH} height={PRINT_CIRCLE_HEIGHT}>
             {pie}
           </PieChart>
         ) : (
@@ -464,19 +469,19 @@ function QuietCircleChart({ title, value, total, color, centerLabel, compact }) 
         )}
         <div
           className={`pointer-events-none absolute inset-0 flex flex-col items-center justify-center ${
-            compact ? 'px-10' : 'px-16 sm:px-20'
+            compact ? 'px-8' : 'px-16 sm:px-20'
           }`}
         >
           <p
             className={`font-bold text-luxe-text leading-none ${
-              compact ? 'text-xl' : 'text-3xl sm:text-4xl'
+              compact ? 'text-lg' : 'text-3xl sm:text-4xl'
             }`}
           >
             {filled}
           </p>
           <p
             className={`text-luxe-muted mt-1 truncate max-w-full text-center ${
-              compact ? 'text-[10px]' : 'text-xs mt-1.5'
+              compact ? 'text-[9px]' : 'text-xs mt-1.5'
             }`}
           >
             {centerLabel || pct}
@@ -637,35 +642,54 @@ function HouseBlock({
           />
         </ChartCard>
 
-        <section className="branch-print-chart-card bg-white rounded-xl border border-gray-200 shadow-md p-4 sm:p-5">
+        <section className="branch-print-chart-card branch-print-medicare bg-white rounded-xl border border-gray-200 shadow-md p-4 sm:p-5">
           <div className={compact ? 'mb-1' : 'mb-3'}>
             <p className="text-xs font-semibold uppercase tracking-wide text-luxe-muted">
               Medicare Referrals
             </p>
-            <div className="flex flex-wrap items-center justify-between gap-3 mt-1">
-              <h3 className="text-base font-bold text-gray-900">
+            <div className="flex flex-wrap items-center justify-between gap-2 mt-1">
+              <h3
+                className={`font-bold text-gray-900 ${
+                  compact ? 'text-xs' : 'text-base'
+                }`}
+              >
                 Able to Accept & Received/Accepted
               </h3>
-              <p className="text-xs text-luxe-muted">
-                Medicare only · Color: green if Received/Accepted ≥ 70% of Able,
-                otherwise red
-                {' · '}
-                Current rate{' '}
-                <span
-                  className={`font-semibold ${
-                    house.medicare.isGreen
-                      ? 'text-emerald-700'
-                      : 'text-red-700'
-                  }`}
-                >
-                  {house.medicare.acceptanceRate.toFixed(1)}%
-                </span>
-              </p>
+              {compact ? (
+                <p className="text-[10px] text-luxe-muted">
+                  Rate{' '}
+                  <span
+                    className={`font-semibold ${
+                      house.medicare.isGreen
+                        ? 'text-emerald-700'
+                        : 'text-red-700'
+                    }`}
+                  >
+                    {house.medicare.acceptanceRate.toFixed(1)}%
+                  </span>
+                </p>
+              ) : (
+                <p className="text-xs text-luxe-muted">
+                  Medicare only · Color: green if Received/Accepted ≥ 70% of Able,
+                  otherwise red
+                  {' · '}
+                  Current rate{' '}
+                  <span
+                    className={`font-semibold ${
+                      house.medicare.isGreen
+                        ? 'text-emerald-700'
+                        : 'text-red-700'
+                    }`}
+                  >
+                    {house.medicare.acceptanceRate.toFixed(1)}%
+                  </span>
+                </p>
+              )}
             </div>
           </div>
           <div
-            className={`grid grid-cols-1 sm:grid-cols-2 ${
-              compact ? 'gap-2' : 'gap-4 sm:gap-6'
+            className={`branch-print-medicare-grid grid grid-cols-1 sm:grid-cols-2 ${
+              compact ? 'gap-1' : 'gap-4 sm:gap-6'
             }`}
           >
             <QuietCircleChart
