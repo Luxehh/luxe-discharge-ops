@@ -23,16 +23,90 @@ import {
   chartRangeLabel,
   formatMonthShort,
   monthKeyFromDate,
+  parseMonthKey,
 } from '../utils/comparisonPeriods'
 import { pctLabel } from '../utils/funnelStats'
 
 const FUNNEL_COLORS = ['#c5bfa3', '#8a845f', '#6e6847', '#5a5539']
-const ACCEPT_COLORS = ['#A7C4A0', '#2F6B4F', '#1E4D38', '#0F3324']
 const TYPE_COLORS = {
   green: '#2F6B4F',
   yellow: '#8a845f',
   red: '#B4534A',
   grey: '#9CA3AF',
+}
+
+/** Per-insurance color families: lighter = Able, darker = Received; index = month shade */
+const INSURANCE_CHART_PALETTES = [
+  {
+    able: ['#C5DDBE', '#A7C4A0', '#8FB388'],
+    accepted: ['#5F9A6E', '#2F6B4F', '#1E4D38'],
+  },
+  {
+    able: ['#D7CCF5', '#B8A4E8', '#9B82D6'],
+    accepted: ['#7C5CBF', '#5B3FA0', '#3F2A7A'],
+  },
+  {
+    able: ['#E2D4B8', '#C5BFA3', '#A89A78'],
+    accepted: ['#8A845F', '#6E6847', '#5A5539'],
+  },
+  {
+    able: ['#B8DED8', '#7EB8B0', '#5B9A94'],
+    accepted: ['#3D8A82', '#2A6B66', '#1A4F4B'],
+  },
+  {
+    able: ['#F0D4A8', '#E0B87A', '#C99A52'],
+    accepted: ['#B07A30', '#8A5E20', '#6B4718'],
+  },
+  {
+    able: ['#C8D4E8', '#9BB0D0', '#7A94B8'],
+    accepted: ['#5A7398', '#3F5578', '#2A3A58'],
+  },
+]
+
+const FULL_MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
+function formatInsuranceChartFooter(periodMetrics) {
+  const keys = []
+  periodMetrics.forEach((period) => {
+    ;(period.months || []).forEach((m) => {
+      if (m && !keys.includes(m)) keys.push(m)
+    })
+  })
+  keys.sort()
+  if (!keys.length) return ''
+
+  const names = keys.map((key) => {
+    const { month } = parseMonthKey(key)
+    return FULL_MONTH_NAMES[month - 1] || formatMonthShort(key)
+  })
+  const year = parseMonthKey(keys[keys.length - 1]).year
+
+  if (names.length === 1) return `${names[0]} - ${year}`
+  return `${names.join(' - ')}, ${year}`
+}
+
+function insurancePalette(index) {
+  return INSURANCE_CHART_PALETTES[index % INSURANCE_CHART_PALETTES.length]
+}
+
+function barFillForRow(row, monthIndex) {
+  const palette = insurancePalette(row.paletteIndex)
+  const shades =
+    row.metricKey === 'able' ? palette.able : palette.accepted
+  return shades[Math.min(monthIndex, shades.length - 1)]
 }
 
 const FUNNEL_METRICS = [
@@ -448,17 +522,49 @@ export default function ComparisonTrends() {
     chartPeriodMetrics.forEach((period) => {
       Object.keys(period.metrics.byInsurance).forEach((name) => set.add(name))
     })
-    return Array.from(set).sort((a, b) => a.localeCompare(b))
+    return Array.from(set)
+      .sort((a, b) => a.localeCompare(b))
+      .filter((name) =>
+        chartPeriodMetrics.some((period) => {
+          const vals = period.metrics.byInsurance[name]
+          return (vals?.able || 0) > 0 || (vals?.accepted || 0) > 0
+        })
+      )
   }, [chartPeriodMetrics])
 
-  const acceptedByInsurance = useMemo(() => {
-    return insuranceNames.map((name) => {
-      const row = { name }
-      chartPeriodMetrics.forEach((period) => {
-        row[period.key] = period.metrics.byInsurance[name]?.accepted || 0
+  /** Flat rows: Able + Received/Accepted per insurance; p0..pn = period values */
+  const insuranceMetricChart = useMemo(() => {
+    const periodCount = chartPeriodMetrics.length
+    const data = insuranceNames.flatMap((name, paletteIndex) => {
+      const ableRow = {
+        id: `${name}-able`,
+        insurance: name,
+        metric: 'Able to Accept',
+        metricKey: 'able',
+        paletteIndex,
+      }
+      const acceptedRow = {
+        id: `${name}-accepted`,
+        insurance: name,
+        metric: 'Received/Accepted',
+        metricKey: 'accepted',
+        paletteIndex,
+      }
+      chartPeriodMetrics.forEach((period, i) => {
+        const vals = period.metrics.byInsurance[name] || {}
+        ableRow[`p${i}`] = vals.able || 0
+        acceptedRow[`p${i}`] = vals.accepted || 0
       })
-      return row
+      return [ableRow, acceptedRow]
     })
+
+    return {
+      data,
+      periodCount,
+      periods: chartPeriodMetrics,
+      footer: formatInsuranceChartFooter(chartPeriodMetrics),
+      insuranceNames,
+    }
   }, [insuranceNames, chartPeriodMetrics])
 
   const trendData = useMemo(() => {
@@ -471,13 +577,15 @@ export default function ComparisonTrends() {
         new Set([month]),
         insuranceTypeById
       )
-      const { able, accepted } = metrics
+      const { able, accepted, notAdmitted } = metrics
       return {
         name: formatMonthShort(month),
         able,
         accepted,
+        notAdmitted,
         ableLabel: `${able} (${pctLabel(able, able)})`,
         acceptedLabel: `${accepted} (${pctLabel(accepted, able)})`,
+        notAdmittedLabel: `${notAdmitted} (${pctLabel(notAdmitted, accepted)})`,
       }
     })
   }, [chartPeriods, filteredReferrals, insuranceTypeById])
@@ -761,7 +869,7 @@ export default function ComparisonTrends() {
           </ChartCard>
 
           <ChartCard
-            title="Received/Accepted by insurance"
+            title="Able to Accept & Received/Accepted by insurance"
             filter={
               <RangeSelect
                 value={chartRange}
@@ -773,32 +881,111 @@ export default function ComparisonTrends() {
               />
             }
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={acceptedByInsurance}
-                barGap={4}
-                barCategoryGap="18%"
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
-                <Legend />
-                {chartPeriodMetrics.map((period, index) => (
-                  <Bar
-                    key={period.key}
-                    dataKey={period.key}
-                    name={period.label}
-                    fill={ACCEPT_COLORS[index % ACCEPT_COLORS.length]}
-                    radius={[4, 4, 0, 0]}
-                    label={{ position: 'top', fontSize: 10 }}
-                  />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
+            {insuranceMetricChart.data.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-sm text-gray-500">
+                No insurance funnel data for this range.
+              </div>
+            ) : (
+              <div className="h-full flex flex-col min-h-0">
+                <div className="flex-1 min-h-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={insuranceMetricChart.data}
+                      barGap={2}
+                      barCategoryGap="16%"
+                      margin={{ top: 18, right: 8, left: 0, bottom: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis
+                        dataKey="metric"
+                        interval={0}
+                        tick={({ x, y, payload }) => {
+                          const label =
+                            payload?.value === 'Able to Accept'
+                              ? 'Able to Accept'
+                              : 'Received/Accepted'
+                          const lines =
+                            label === 'Received/Accepted'
+                              ? ['Received/', 'Accepted']
+                              : ['Able to', 'Accept']
+                          return (
+                            <g transform={`translate(${x},${y})`}>
+                              {lines.map((line, i) => (
+                                <text
+                                  key={line}
+                                  dy={12 + i * 11}
+                                  textAnchor="middle"
+                                  fill="#555"
+                                  fontSize={8}
+                                >
+                                  {line}
+                                </text>
+                              ))}
+                            </g>
+                          )
+                        }}
+                        height={36}
+                      />
+                      <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                      <Tooltip
+                        formatter={(value, _name, item) => {
+                          const row = item?.payload
+                          if (!row) return [value, _name]
+                          return [
+                            value,
+                            `${row.insurance} · ${row.metric}`,
+                          ]
+                        }}
+                        labelFormatter={(_label, payload) => {
+                          const row = payload?.[0]?.payload
+                          return row
+                            ? `${row.insurance} — ${row.metric}`
+                            : ''
+                        }}
+                      />
+                      {insuranceMetricChart.periods.map((period, monthIndex) => (
+                        <Bar
+                          key={period.key}
+                          dataKey={`p${monthIndex}`}
+                          name={period.label}
+                          radius={[3, 3, 0, 0]}
+                          maxBarSize={36}
+                          label={{ position: 'top', fontSize: 9 }}
+                        >
+                          {insuranceMetricChart.data.map((row) => (
+                            <Cell
+                              key={`${row.id}-${period.key}`}
+                              fill={barFillForRow(row, monthIndex)}
+                            />
+                          ))}
+                        </Bar>
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="shrink-0 pt-1">
+                  <div className="flex pl-8 pr-2">
+                    {insuranceMetricChart.insuranceNames.map((name) => (
+                      <div
+                        key={name}
+                        className="flex-1 text-center text-[11px] font-semibold text-gray-700 truncate px-0.5"
+                        title={name}
+                      >
+                        {name}
+                      </div>
+                    ))}
+                  </div>
+                  {insuranceMetricChart.footer ? (
+                    <p className="text-center text-sm text-gray-600 mt-2 font-medium">
+                      {insuranceMetricChart.footer}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            )}
           </ChartCard>
 
-          <ChartCard title="Able to Accept, Received/Accepted">
+          <ChartCard title="Able to Accept, Accepted & Not Admitted — Trend">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={trendData}
@@ -816,9 +1003,12 @@ export default function ComparisonTrends() {
                     if (name?.includes('Able to Accept')) {
                       return [row.ableLabel, name]
                     }
+                    if (name?.includes('Not Admitted')) {
+                      return [row.notAdmittedLabel, name]
+                    }
                     if (
-                      name?.includes('Received/Accepted') ||
-                      name?.includes('Accepted')
+                      name?.includes('Accepted') ||
+                      name?.includes('Received')
                     ) {
                       return [row.acceptedLabel, name]
                     }
@@ -844,7 +1034,7 @@ export default function ComparisonTrends() {
                 </Bar>
                 <Bar
                   dataKey="accepted"
-                  name="Received/Accepted (% of able)"
+                  name="Accepted (% of able)"
                   fill="#2F6B4F"
                   radius={[4, 4, 0, 0]}
                 >
@@ -852,6 +1042,18 @@ export default function ComparisonTrends() {
                     dataKey="acceptedLabel"
                     position="top"
                     style={{ fill: '#2F6B4F', fontSize: 10, fontWeight: 600 }}
+                  />
+                </Bar>
+                <Bar
+                  dataKey="notAdmitted"
+                  name="Not Admitted (% of accepted)"
+                  fill="#5B8A8A"
+                  radius={[4, 4, 0, 0]}
+                >
+                  <LabelList
+                    dataKey="notAdmittedLabel"
+                    position="top"
+                    style={{ fill: '#5B8A8A', fontSize: 10, fontWeight: 600 }}
                   />
                 </Bar>
               </BarChart>
