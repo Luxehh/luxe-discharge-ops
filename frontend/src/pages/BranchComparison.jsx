@@ -22,15 +22,52 @@ import {
   buildPeriodKeys,
   formatMonthShort,
   monthKeyFromDate,
+  parseMonthKey,
   shiftMonth,
 } from '../utils/comparisonPeriods'
 import { pctLabel } from '../utils/funnelStats'
 
-const ABLE_COLOR = '#A7C4A0'
-const ACCEPTED_COLOR = '#2F6B4F'
 const TREND_ABLE = '#E09A2B'
 const TREND_ACCEPTED = '#2F6B4F'
 const TREND_NOT_ADMITTED = '#5B8A8A'
+
+/** Able = orange, Received = green; index 0 = newest month (full), older = lighter */
+const ABLE_ORANGE_BY_AGE = ['#E09A2B', '#EBC06A', '#F3D9A3', '#F8E8C8']
+const ACCEPTED_GREEN_BY_AGE = ['#2F6B4F', '#5F9A72', '#A7C4A0', '#C8DDBF']
+
+const FULL_MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
+function formatInsuranceChartFooter(months) {
+  const keys = [...(months || [])].filter(Boolean).sort()
+  if (!keys.length) return ''
+  const names = keys.map((key) => {
+    const { month } = parseMonthKey(key)
+    return FULL_MONTH_NAMES[month - 1] || formatMonthShort(key)
+  })
+  const year = parseMonthKey(keys[keys.length - 1]).year
+  if (names.length === 1) return `${names[0]} - ${year}`
+  return `${names.join(' - ')}, ${year}`
+}
+
+function insuranceBarFill(row, monthIndex, periodCount) {
+  const ageFromNewest = Math.max(0, (periodCount || 1) - 1 - monthIndex)
+  const shades =
+    row.metricKey === 'able' ? ABLE_ORANGE_BY_AGE : ACCEPTED_GREEN_BY_AGE
+  return shades[Math.min(ageFromNewest, shades.length - 1)]
+}
 
 function emptyMetrics() {
   return {
@@ -492,7 +529,13 @@ function QuietCircleChart({ title, value, total, color, centerLabel, compact }) 
   )
 }
 
-function InsuranceBarChart({ data, compact }) {
+function InsuranceBarChart({ chart, compact }) {
+  const data = chart?.data || []
+  const months = chart?.months || []
+  const insuranceNames = chart?.insuranceNames || []
+  const footer = chart?.footer || ''
+  const periodCount = months.length
+
   if (!data.length) {
     return (
       <div className="h-full flex items-center justify-center text-sm text-gray-500">
@@ -501,45 +544,57 @@ function InsuranceBarChart({ data, compact }) {
     )
   }
 
-  const margin = compact
-    ? { top: 16, right: 12, left: 0, bottom: 4 }
-    : { top: 5, right: 5, left: 5, bottom: 5 }
-  const labelSize = compact ? 8 : 10
+  const bars = months.map((monthKey, monthIndex) => (
+    <Bar
+      key={monthKey}
+      dataKey={`p${monthIndex}`}
+      name={formatMonthShort(monthKey)}
+      radius={[3, 3, 0, 0]}
+      maxBarSize={compact ? 22 : 36}
+      label={{ position: 'top', fontSize: compact ? 7 : 9 }}
+      isAnimationActive={!compact}
+    >
+      {data.map((row) => (
+        <Cell
+          key={`${row.id}-${monthKey}`}
+          fill={insuranceBarFill(row, monthIndex, periodCount)}
+        />
+      ))}
+    </Bar>
+  ))
 
-  const content = [
-    <CartesianGrid key="grid" strokeDasharray="3 3" vertical={false} />,
+  const xAxis = (
     <XAxis
-      key="x"
-      dataKey="name"
-      tick={{ fontSize: compact ? 8 : 10 }}
+      dataKey="categoryKey"
       interval={0}
-    />,
-    <YAxis
-      key="y"
-      tick={{ fontSize: compact ? 9 : 11 }}
-      allowDecimals={false}
-    />,
-    !compact ? <Tooltip key="tip" /> : null,
-    <Legend key="legend" wrapperStyle={{ fontSize: compact ? 9 : 12 }} />,
-    <Bar
-      key="able"
-      dataKey="able"
-      name="Able to Accept"
-      fill={ABLE_COLOR}
-      radius={[4, 4, 0, 0]}
-      label={{ position: 'top', fontSize: labelSize }}
-      isAnimationActive={!compact}
-    />,
-    <Bar
-      key="accepted"
-      dataKey="accepted"
-      name="Received/Accepted"
-      fill={ACCEPTED_COLOR}
-      radius={[4, 4, 0, 0]}
-      label={{ position: 'top', fontSize: labelSize }}
-      isAnimationActive={!compact}
-    />,
-  ]
+      tick={(props) => {
+        const { x, y, index } = props
+        const row = data[index]
+        if (!row) return null
+        const lines =
+          row.metricKey === 'accepted'
+            ? ['Received/', 'Accepted']
+            : ['Able to', 'Accept']
+        return (
+          <g transform={`translate(${x},${y})`}>
+            {lines.map((line, i) => (
+              <text
+                key={line}
+                dy={10 + i * 10}
+                textAnchor="middle"
+                fill="#555"
+                fontSize={compact ? 7 : 8}
+              >
+                {line}
+              </text>
+            ))}
+          </g>
+        )
+      }}
+      height={compact ? 28 : 36}
+      tickLine={false}
+    />
+  )
 
   if (compact) {
     return (
@@ -552,29 +607,86 @@ function InsuranceBarChart({ data, compact }) {
       >
         <BarChart
           width={PRINT_CHART_WIDTH}
-          height={PRINT_CHART_HEIGHT}
+          height={PRINT_CHART_HEIGHT - 18}
           data={data}
-          barGap={4}
-          barCategoryGap="18%"
-          margin={margin}
+          barGap={2}
+          barCategoryGap="16%"
+          margin={{ top: 14, right: 8, left: 0, bottom: 4 }}
         >
-          {content}
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          {xAxis}
+          <YAxis
+            width={28}
+            tick={{ fontSize: 8 }}
+            allowDecimals={false}
+          />
+          {bars}
         </BarChart>
+        <div
+          className="flex"
+          style={{ paddingLeft: 28, paddingRight: 8, marginTop: 2 }}
+        >
+          {insuranceNames.map((name) => (
+            <div
+              key={name}
+              className="flex-1 min-w-0 text-center text-[8px] font-semibold text-gray-700 truncate"
+              title={name}
+            >
+              {name}
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart
-        data={data}
-        barGap={4}
-        barCategoryGap="18%"
-        margin={margin}
-      >
-        {content}
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="h-full flex flex-col min-h-0">
+      <div className="flex-1 min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            barGap={2}
+            barCategoryGap="16%"
+            margin={{ top: 18, right: 12, left: 4, bottom: 8 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            {xAxis}
+            <YAxis width={40} tick={{ fontSize: 11 }} allowDecimals={false} />
+            <Tooltip
+              formatter={(value, _name, item) => {
+                const row = item?.payload
+                if (!row) return [value, _name]
+                return [value, `${row.insurance} · ${row.metric}`]
+              }}
+              labelFormatter={(_label, payload) => {
+                const row = payload?.[0]?.payload
+                return row ? `${row.insurance} — ${row.metric}` : ''
+              }}
+            />
+            {bars}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="shrink-0 pt-1">
+        <div className="flex" style={{ paddingLeft: 44, paddingRight: 12 }}>
+          {insuranceNames.map((name) => (
+            <div
+              key={name}
+              className="flex-1 min-w-0 text-center text-[11px] font-semibold text-gray-700 truncate px-0.5"
+              title={name}
+            >
+              {name}
+            </div>
+          ))}
+        </div>
+        {footer ? (
+          <p className="text-center text-sm text-gray-600 mt-2 font-medium">
+            {footer}
+          </p>
+        ) : null}
+      </div>
+    </div>
   )
 }
 
@@ -620,8 +732,8 @@ function HouseBlock({
           compact={compact}
         >
           <InsuranceBarChart
-            key={compact ? 'ins-print' : 'ins-screen'}
-            data={house.ableAcceptedByInsurance}
+            key={compact ? `ins-print-${house.insuranceChart?.months?.join('-')}` : `ins-screen-${house.insuranceChart?.months?.join('-')}`}
+            chart={house.insuranceChart}
             compact={compact}
           />
         </ChartCard>
@@ -817,15 +929,45 @@ export default function BranchComparison() {
 
     return locationHouses.map((house) => {
       const houseRefs = referrals.filter((r) => r.houseId === String(house.id))
-      const metrics = aggregateReferrals(houseRefs, new Set(chartMonths))
-      const ableAcceptedByInsurance = Object.entries(metrics.byInsurance)
-        .map(([name, vals]) => ({
-          name,
-          able: vals.able || 0,
-          accepted: vals.accepted || 0,
-        }))
-        .filter((row) => row.able > 0 || row.accepted > 0)
-        .sort((a, b) => a.name.localeCompare(b.name))
+
+      const metricsByMonth = chartMonths.map((month) =>
+        aggregateReferrals(houseRefs, new Set([month]))
+      )
+
+      const insuranceNameSet = new Set()
+      metricsByMonth.forEach((monthMetrics) => {
+        Object.entries(monthMetrics.byInsurance).forEach(([name, vals]) => {
+          if ((vals?.able || 0) > 0 || (vals?.accepted || 0) > 0) {
+            insuranceNameSet.add(name)
+          }
+        })
+      })
+      const insuranceNames = Array.from(insuranceNameSet).sort((a, b) =>
+        a.localeCompare(b)
+      )
+
+      const insuranceData = insuranceNames.flatMap((name) => {
+        const ableRow = {
+          id: `${name}-able`,
+          categoryKey: `${name}__able`,
+          insurance: name,
+          metric: 'Able to Accept',
+          metricKey: 'able',
+        }
+        const acceptedRow = {
+          id: `${name}-accepted`,
+          categoryKey: `${name}__accepted`,
+          insurance: name,
+          metric: 'Received/Accepted',
+          metricKey: 'accepted',
+        }
+        metricsByMonth.forEach((monthMetrics, i) => {
+          const vals = monthMetrics.byInsurance[name] || {}
+          ableRow[`p${i}`] = vals.able || 0
+          acceptedRow[`p${i}`] = vals.accepted || 0
+        })
+        return [ableRow, acceptedRow]
+      })
 
       const medicareCurrent = aggregateReferrals(
         houseRefs,
@@ -852,7 +994,12 @@ export default function BranchComparison() {
           isGreen,
           color: isGreen ? '#2F6B4F' : '#B42318',
         },
-        ableAcceptedByInsurance,
+        insuranceChart: {
+          data: insuranceData,
+          months: chartMonths,
+          insuranceNames,
+          footer: formatInsuranceChartFooter(chartMonths),
+        },
       }
     })
   }, [
