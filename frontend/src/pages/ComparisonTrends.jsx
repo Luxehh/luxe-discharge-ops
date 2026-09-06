@@ -35,33 +35,12 @@ const TYPE_COLORS = {
   grey: '#9CA3AF',
 }
 
-/** Per-insurance color families: lighter = Able, darker = Received; index = month shade */
-const INSURANCE_CHART_PALETTES = [
-  {
-    able: ['#C5DDBE', '#A7C4A0', '#8FB388'],
-    accepted: ['#5F9A6E', '#2F6B4F', '#1E4D38'],
-  },
-  {
-    able: ['#D7CCF5', '#B8A4E8', '#9B82D6'],
-    accepted: ['#7C5CBF', '#5B3FA0', '#3F2A7A'],
-  },
-  {
-    able: ['#E2D4B8', '#C5BFA3', '#A89A78'],
-    accepted: ['#8A845F', '#6E6847', '#5A5539'],
-  },
-  {
-    able: ['#B8DED8', '#7EB8B0', '#5B9A94'],
-    accepted: ['#3D8A82', '#2A6B66', '#1A4F4B'],
-  },
-  {
-    able: ['#F0D4A8', '#E0B87A', '#C99A52'],
-    accepted: ['#B07A30', '#8A5E20', '#6B4718'],
-  },
-  {
-    able: ['#C8D4E8', '#9BB0D0', '#7A94B8'],
-    accepted: ['#5A7398', '#3F5578', '#2A3A58'],
-  },
-]
+/**
+ * Able = orange, Received/Accepted = green.
+ * Index 0 = newest month (full color); older months get progressively lighter.
+ */
+const ABLE_ORANGE_BY_AGE = ['#E09A2B', '#EBC06A', '#F3D9A3', '#F8E8C8']
+const ACCEPTED_GREEN_BY_AGE = ['#2F6B4F', '#5F9A72', '#A7C4A0', '#C8DDBF']
 
 const FULL_MONTH_NAMES = [
   'January',
@@ -98,15 +77,11 @@ function formatInsuranceChartFooter(periodMetrics) {
   return `${names.join(' - ')}, ${year}`
 }
 
-function insurancePalette(index) {
-  return INSURANCE_CHART_PALETTES[index % INSURANCE_CHART_PALETTES.length]
-}
-
-function barFillForRow(row, monthIndex) {
-  const palette = insurancePalette(row.paletteIndex)
+function barFillForRow(row, monthIndex, periodCount) {
+  const ageFromNewest = Math.max(0, (periodCount || 1) - 1 - monthIndex)
   const shades =
-    row.metricKey === 'able' ? palette.able : palette.accepted
-  return shades[Math.min(monthIndex, shades.length - 1)]
+    row.metricKey === 'able' ? ABLE_ORANGE_BY_AGE : ACCEPTED_GREEN_BY_AGE
+  return shades[Math.min(ageFromNewest, shades.length - 1)]
 }
 
 const FUNNEL_METRICS = [
@@ -535,20 +510,20 @@ export default function ComparisonTrends() {
   /** Flat rows: Able + Received/Accepted per insurance; p0..pn = period values */
   const insuranceMetricChart = useMemo(() => {
     const periodCount = chartPeriodMetrics.length
-    const data = insuranceNames.flatMap((name, paletteIndex) => {
+    const data = insuranceNames.flatMap((name) => {
       const ableRow = {
         id: `${name}-able`,
+        categoryKey: `${name}__able`,
         insurance: name,
         metric: 'Able to Accept',
         metricKey: 'able',
-        paletteIndex,
       }
       const acceptedRow = {
         id: `${name}-accepted`,
+        categoryKey: `${name}__accepted`,
         insurance: name,
         metric: 'Received/Accepted',
         metricKey: 'accepted',
-        paletteIndex,
       }
       chartPeriodMetrics.forEach((period, i) => {
         const vals = period.metrics.byInsurance[name] || {}
@@ -893,19 +868,18 @@ export default function ComparisonTrends() {
                       data={insuranceMetricChart.data}
                       barGap={2}
                       barCategoryGap="16%"
-                      margin={{ top: 18, right: 8, left: 0, bottom: 8 }}
+                      margin={{ top: 18, right: 12, left: 4, bottom: 8 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis
-                        dataKey="metric"
+                        dataKey="categoryKey"
                         interval={0}
-                        tick={({ x, y, payload }) => {
-                          const label =
-                            payload?.value === 'Able to Accept'
-                              ? 'Able to Accept'
-                              : 'Received/Accepted'
+                        tick={(props) => {
+                          const { x, y, index } = props
+                          const row = insuranceMetricChart.data[index]
+                          if (!row) return null
                           const lines =
-                            label === 'Received/Accepted'
+                            row.metricKey === 'accepted'
                               ? ['Received/', 'Accepted']
                               : ['Able to', 'Accept']
                           return (
@@ -925,8 +899,13 @@ export default function ComparisonTrends() {
                           )
                         }}
                         height={36}
+                        tickLine={false}
                       />
-                      <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                      <YAxis
+                        width={40}
+                        tick={{ fontSize: 11 }}
+                        allowDecimals={false}
+                      />
                       <Tooltip
                         formatter={(value, _name, item) => {
                           const row = item?.payload
@@ -955,7 +934,11 @@ export default function ComparisonTrends() {
                           {insuranceMetricChart.data.map((row) => (
                             <Cell
                               key={`${row.id}-${period.key}`}
-                              fill={barFillForRow(row, monthIndex)}
+                              fill={barFillForRow(
+                                row,
+                                monthIndex,
+                                insuranceMetricChart.periodCount
+                              )}
                             />
                           ))}
                         </Bar>
@@ -964,11 +947,15 @@ export default function ComparisonTrends() {
                   </ResponsiveContainer>
                 </div>
                 <div className="shrink-0 pt-1">
-                  <div className="flex pl-8 pr-2">
+                  {/* Align with chart plot: YAxis width 40 + left margin 4 */}
+                  <div
+                    className="flex"
+                    style={{ paddingLeft: 44, paddingRight: 12 }}
+                  >
                     {insuranceMetricChart.insuranceNames.map((name) => (
                       <div
                         key={name}
-                        className="flex-1 text-center text-[11px] font-semibold text-gray-700 truncate px-0.5"
+                        className="flex-1 min-w-0 text-center text-[11px] font-semibold text-gray-700 truncate px-0.5"
                         title={name}
                       >
                         {name}

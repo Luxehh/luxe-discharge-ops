@@ -583,9 +583,6 @@ function HouseBlock({
   location,
   monthLabel,
   compareLabel,
-  insuranceRange,
-  onInsuranceRangeChange,
-  monthRangeOptions,
   compact,
 }) {
   return (
@@ -621,19 +618,6 @@ function HouseBlock({
         <ChartCard
           title="Able to Accept, Received/Accepted by Insurance"
           compact={compact}
-          filter={
-            <select
-              value={insuranceRange}
-              onChange={(e) => onInsuranceRangeChange(Number(e.target.value))}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/30"
-            >
-              {monthRangeOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.value === 1 ? '1 Month' : `${opt.value} Months`}
-                </option>
-              ))}
-            </select>
-          }
         >
           <InsuranceBarChart
             key={compact ? 'ins-print' : 'ins-screen'}
@@ -729,7 +713,7 @@ export default function BranchComparison() {
 
   const [selectedLocation, setSelectedLocation] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('')
-  const [insuranceRange, setInsuranceRange] = useState(2)
+  const [monthRange, setMonthRange] = useState(2)
   const [printCompact, setPrintCompact] = useState(false)
 
   const load = useCallback(async () => {
@@ -813,14 +797,17 @@ export default function BranchComparison() {
     ? formatMonthShort(previousMonth)
     : 'prior period'
 
+  // Top Month + 1/2/3 Months range drive every chart below
   const chartMonths = useMemo(() => {
     if (!selectedMonth) return []
     return buildPeriodKeys(
       'monthly',
-      Math.max(insuranceRange, 1),
+      Math.max(monthRange, 1),
       selectedMonth
     ).map((p) => p.key)
-  }, [selectedMonth, insuranceRange])
+  }, [selectedMonth, monthRange])
+
+  const monthRangeOptions = RANGE_OPTIONS.monthly
 
   const houseBlocks = useMemo(() => {
     if (!selectedMonth || !locationHouses.length) return []
@@ -875,8 +862,6 @@ export default function BranchComparison() {
     previousMonth,
     chartMonths,
   ])
-
-  const monthRangeOptions = RANGE_OPTIONS.monthly
 
   const printMonthLabel = selectedMonth
     ? formatMonthLabel(selectedMonth) || formatMonthShort(selectedMonth)
@@ -961,6 +946,19 @@ export default function BranchComparison() {
             }}
           />
 
+          <select
+            value={monthRange}
+            onChange={(e) => setMonthRange(Number(e.target.value))}
+            className="min-w-[9rem] px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/30"
+            title="Chart month range"
+          >
+            {monthRangeOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.value === 1 ? '1 Month' : `${opt.value} Months`}
+              </option>
+            ))}
+          </select>
+
           <button
             type="button"
             onClick={handleDownloadPdf}
@@ -1013,9 +1011,6 @@ export default function BranchComparison() {
               location={selectedLocation}
               monthLabel={printMonthLabel}
               compareLabel={compareLabel}
-              insuranceRange={insuranceRange}
-              onInsuranceRangeChange={setInsuranceRange}
-              monthRangeOptions={monthRangeOptions}
               compact={printCompact}
             />
           ))}
