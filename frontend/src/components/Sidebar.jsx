@@ -37,6 +37,15 @@ function BranchIcon() {
   )
 }
 
+function AnalyticsIcon() {
+  return (
+    <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+    </svg>
+  )
+}
+
 function LocationsIcon() {
   return (
     <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -90,6 +99,7 @@ const MENU_ITEMS = [
   { to: '/add-referral', label: 'Add Referral Details', icon: ReferralIcon },
   { to: '/comparison-trends', label: 'Comparison & Trends', icon: TrendsIcon },
   { to: '/branch-comparison', label: 'Branch Comparison', icon: BranchIcon },
+  { to: '/data-analytics', label: 'Data Analytics', icon: AnalyticsIcon },
   { to: '/locations', label: 'Locations', icon: LocationsIcon, superAdminOnly: true },
   { to: '/insurances', label: 'Insurances', icon: InsurancesIcon },
   {

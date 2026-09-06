@@ -9,6 +9,7 @@ import OverviewHouse from './pages/OverviewHouse'
 import AddReferral from './pages/AddReferral'
 import ComparisonTrends from './pages/ComparisonTrends'
 import BranchComparison from './pages/BranchComparison'
+import DataAnalytics from './pages/DataAnalytics'
 import Locations from './pages/Locations'
 import Insurances from './pages/Insurances'
 import InsuranceTypes from './pages/InsuranceTypes'
@@ -61,6 +62,7 @@ function App() {
         <Route path="referral-view" element={<ReferralView />} />
         <Route path="comparison-trends" element={<ComparisonTrends />} />
         <Route path="branch-comparison" element={<BranchComparison />} />
+        <Route path="data-analytics" element={<DataAnalytics />} />
         <Route
           path="locations"
           element={

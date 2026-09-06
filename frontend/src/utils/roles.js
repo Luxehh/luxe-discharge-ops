@@ -20,6 +20,7 @@ export const LOCATION_ADMIN_MENU = [
   '/add-referral',
   '/comparison-trends',
   '/branch-comparison',
+  '/data-analytics',
   '/insurances',
 ]
 
