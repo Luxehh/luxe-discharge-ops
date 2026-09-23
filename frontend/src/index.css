@@ -38,7 +38,7 @@ body {
 /* Print / Save as PDF — current page content only (no chrome) */
 @media print {
   @page {
-    margin: 6mm;
+    margin: 5mm;
     size: portrait;
   }
 
@@ -80,13 +80,15 @@ body {
     padding: 0 !important;
   }
 
-  /* Branch Comparison: exactly 1 house = 1 printed page (fill page height) */
+  /* Branch Comparison: exactly 1 facility = 1 printed page */
   body.branch-comparison-printing .branch-house-print-page {
     break-after: page;
     page-break-after: always;
+    break-inside: avoid;
+    page-break-inside: avoid;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 7px;
     width: 100%;
   }
 
@@ -109,8 +111,9 @@ body {
   body.branch-comparison-printing .branch-print-charts {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 7px;
     flex: 1 1 auto;
+    min-height: 0;
   }
 
   body.branch-comparison-printing .branch-print-charts.space-y-5 > :not([hidden]) ~ :not([hidden]) {
@@ -118,68 +121,68 @@ body {
   }
 
   body.branch-comparison-printing .branch-print-house-header h3 {
-    font-size: 1.25rem !important;
+    font-size: 1.15rem !important;
     margin: 0 !important;
-    line-height: 1.2 !important;
+    line-height: 1.15 !important;
   }
 
   body.branch-comparison-printing .branch-print-house-header p {
-    margin-top: 2px !important;
-    font-size: 11px !important;
+    margin-top: 1px !important;
+    font-size: 10px !important;
   }
 
   /* KPI cards: single row of 6 in PDF */
   body.branch-comparison-printing .branch-kpi-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-    gap: 6px !important;
+    gap: 5px !important;
     margin: 0 !important;
   }
 
   body.branch-comparison-printing .branch-kpi-grid > div {
     box-shadow: none !important;
-    padding: 6px 7px !important;
+    padding: 5px 6px !important;
   }
 
   body.branch-comparison-printing .branch-kpi-grid .text-2xl {
-    font-size: 1.05rem !important;
+    font-size: 1rem !important;
   }
 
   body.branch-comparison-printing .branch-kpi-grid .text-\[11px\] {
-    font-size: 8px !important;
-    margin-top: 3px !important;
-    line-height: 1.2 !important;
+    font-size: 7.5px !important;
+    margin-top: 2px !important;
+    line-height: 1.15 !important;
   }
 
   body.branch-comparison-printing .branch-kpi-grid .mt-1\.5 {
-    margin-top: 4px !important;
+    margin-top: 3px !important;
   }
 
-  /* Chart cards — taller to use full page */
+  /* Chart cards — use available page height, still 1 facility per page */
   body.branch-comparison-printing .branch-print-chart-card {
     background: #ffffff !important;
     border: 1px solid #e5e7eb !important;
     box-shadow: none !important;
-    padding: 8px 10px !important;
+    padding: 6px 8px !important;
     margin: 0 !important;
-    border-radius: 8px !important;
+    border-radius: 6px !important;
     overflow: hidden !important;
     flex-shrink: 0;
   }
 
   body.branch-comparison-printing .branch-print-chart-card > div:first-child {
-    margin-bottom: 4px !important;
+    margin-bottom: 3px !important;
   }
 
   body.branch-comparison-printing .branch-print-chart-card h3 {
-    font-size: 11px !important;
+    font-size: 10px !important;
     margin: 0 !important;
-    line-height: 1.25 !important;
+    line-height: 1.2 !important;
   }
 
   body.branch-comparison-printing .branch-print-chart {
-    height: 200px !important;
-    min-height: 200px !important;
-    max-height: 200px !important;
+    height: 163px !important;
+    min-height: 163px !important;
+    max-height: 163px !important;
     overflow: hidden !important;
     position: relative !important;
   }
@@ -192,14 +195,20 @@ body {
     overflow: visible !important;
   }
 
-  /* Medicare circles stay side-by-side and fill remaining space */
+  /* Medicare circles stay side-by-side */
   body.branch-comparison-printing .branch-print-medicare-grid {
     grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
+    gap: 6px !important;
     justify-items: center;
   }
 
-  body.branch-comparison-printing .branch-print-medicare .text-xs {
-    font-size: 10px !important;
+  body.branch-comparison-printing .branch-print-medicare .text-xs,
+  body.branch-comparison-printing .branch-print-medicare .text-\[10px\] {
+    font-size: 9px !important;
+  }
+
+  body.branch-comparison-printing .branch-print-medicare p.font-semibold {
+    font-size: 9px !important;
+    margin-bottom: 2px !important;
   }
 }

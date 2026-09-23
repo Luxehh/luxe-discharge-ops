@@ -1006,6 +1006,7 @@ export default function ComparisonTrends() {
                   verticalAlign="top"
                   align="center"
                   wrapperStyle={{ paddingBottom: 12, fontSize: 12 }}
+                  itemSorter={null}
                 />
                 <Bar
                   dataKey="able"
@@ -1021,7 +1022,7 @@ export default function ComparisonTrends() {
                 </Bar>
                 <Bar
                   dataKey="accepted"
-                  name="Accepted (% of able)"
+                  name="Received/Accepted (% of able)"
                   fill="#2F6B4F"
                   radius={[4, 4, 0, 0]}
                 >
@@ -1034,13 +1035,13 @@ export default function ComparisonTrends() {
                 <Bar
                   dataKey="notAdmitted"
                   name="Not Admitted (% of accepted)"
-                  fill="#5B8A8A"
+                  fill="#C45C4A"
                   radius={[4, 4, 0, 0]}
                 >
                   <LabelList
                     dataKey="notAdmittedLabel"
                     position="top"
-                    style={{ fill: '#5B8A8A', fontSize: 10, fontWeight: 600 }}
+                    style={{ fill: '#C45C4A', fontSize: 10, fontWeight: 600 }}
                   />
                 </Bar>
               </BarChart>

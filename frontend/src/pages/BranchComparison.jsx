@@ -29,7 +29,14 @@ import { pctLabel } from '../utils/funnelStats'
 
 const TREND_ABLE = '#E09A2B'
 const TREND_ACCEPTED = '#2F6B4F'
-const TREND_NOT_ADMITTED = '#5B8A8A'
+const TREND_NOT_ADMITTED = '#C45C4A'
+
+const TYPE_COLORS = {
+  green: '#2F6B4F',
+  yellow: '#8a845f',
+  red: '#B4534A',
+  grey: '#9CA3AF',
+}
 
 /** Able = orange, Received = green; index 0 = newest month (full), older = lighter */
 const ABLE_ORANGE_BY_AGE = ['#E09A2B', '#EBC06A', '#F3D9A3', '#F8E8C8']
@@ -130,6 +137,38 @@ function aggregateReferrals(referrals, monthSet, insuranceFilter) {
 /** True Medicare only — not Medicare Advantage. */
 function isMedicareInsurance(name) {
   return String(name || '').trim().toLowerCase() === 'medicare'
+}
+
+function buildTypeMixData(
+  referrals,
+  monthSet,
+  insuranceTypeById,
+  typeNameById
+) {
+  const byType = {}
+
+  referrals.forEach((ref) => {
+    if (monthSet && !monthSet.has(ref.month)) return
+    ;(ref.ableToAccept || []).forEach((row) => {
+      const accepted = Number(row.accepted) || 0
+      if (!accepted) return
+      const typeId =
+        row.typeId || insuranceTypeById[row.insuranceId] || 'unknown'
+      byType[typeId] = (byType[typeId] || 0) + accepted
+    })
+  })
+
+  return Object.entries(byType)
+    .map(([typeId, value]) => {
+      const type = typeNameById[typeId]
+      return {
+        name: type?.name || 'Other',
+        value,
+        color: TYPE_COLORS[type?.color] || '#9CA3AF',
+      }
+    })
+    .filter((row) => row.value > 0)
+    .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name))
 }
 
 function deltaLabel(current, previous) {
@@ -262,9 +301,9 @@ function KpiRow({ current, previous, compareLabel }) {
 }
 
 const PRINT_CHART_WIDTH = 720
-const PRINT_CHART_HEIGHT = 200
-const PRINT_CIRCLE_HEIGHT = 168
-const PRINT_CIRCLE_WIDTH = 280
+const PRINT_CHART_HEIGHT = 163
+const PRINT_CIRCLE_HEIGHT = 141
+const PRINT_CIRCLE_WIDTH = 252
 
 function ChartCard({ title, filter, children, compact }) {
   return (
@@ -319,10 +358,10 @@ function buildTrendRows(referrals, months, insuranceFilter) {
 
 function TripleMetricBarChart({ data, compact }) {
   const margin = compact
-    ? { top: 20, right: 10, left: 0, bottom: 2 }
+    ? { top: 16, right: 8, left: -4, bottom: 0 }
     : { top: 28, right: 16, left: 0, bottom: 4 }
-  const tickSize = compact ? 9 : 11
-  const labelSize = compact ? 8 : 10
+  const tickSize = compact ? 8 : 11
+  const labelSize = compact ? 7 : 10
 
   const content = [
     <CartesianGrid key="grid" strokeDasharray="3 3" vertical={false} />,
@@ -356,6 +395,7 @@ function TripleMetricBarChart({ data, compact }) {
         paddingBottom: compact ? 4 : 12,
         fontSize: compact ? 9 : 12,
       }}
+      itemSorter={null}
     />,
     <Bar
       key="able"
@@ -525,6 +565,153 @@ function QuietCircleChart({ title, value, total, color, centerLabel, compact }) 
           </p>
         </div>
       </div>
+    </div>
+  )
+}
+
+function TypeMixChart({ data, compact }) {
+  const rows = data || []
+  const total = rows.reduce((sum, row) => sum + (Number(row.value) || 0), 0)
+  const chartData = rows.length
+    ? rows
+    : [{ name: 'Empty', value: 1, color: '#e8e4db' }]
+
+  const content = [
+    <Pie
+      key="pie"
+      data={chartData}
+      dataKey="value"
+      nameKey="name"
+      startAngle={90}
+      endAngle={-270}
+      innerRadius="45%"
+      outerRadius="90%"
+      stroke="none"
+      paddingAngle={rows.length ? 1.5 : 0}
+      isAnimationActive={!compact}
+      labelLine={false}
+      label={
+        rows.length
+          ? ({ percent, cx, cy, midAngle, innerRadius, outerRadius }) => {
+              if (!percent || percent < 0.05) return null
+              const RADIAN = Math.PI / 180
+              const radius =
+                Number(innerRadius) +
+                (Number(outerRadius) - Number(innerRadius)) * 0.5
+              const x = Number(cx) + radius * Math.cos(-midAngle * RADIAN)
+              const y = Number(cy) + radius * Math.sin(-midAngle * RADIAN)
+              return (
+                <text
+                  x={x}
+                  y={y}
+                  fill="#ffffff"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  className={
+                    compact ? 'text-[8px] font-bold' : 'text-[11px] font-bold'
+                  }
+                >
+                  {`${(percent * 100).toFixed(0)}%`}
+                </text>
+              )
+            }
+          : false
+      }
+    >
+      {chartData.map((entry) => (
+        <Cell key={entry.name} fill={entry.color} />
+      ))}
+    </Pie>,
+    !compact ? (
+      <Tooltip
+        key="tip"
+        formatter={(value, name) => [
+          `${value} (${pctLabel(value, total)})`,
+          name,
+        ]}
+      />
+    ) : null,
+  ]
+
+  return (
+    <div className="relative h-full w-full flex flex-col">
+      <div
+        className="relative flex-1 min-h-0"
+        style={
+          compact
+            ? {
+                height: PRINT_CIRCLE_HEIGHT,
+                width: '100%',
+              }
+            : undefined
+        }
+      >
+        {compact ? (
+          <PieChart width={PRINT_CHART_WIDTH} height={PRINT_CIRCLE_HEIGHT}>
+            {content}
+          </PieChart>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>{content}</PieChart>
+          </ResponsiveContainer>
+        )}
+        <div
+          className={`pointer-events-none absolute inset-0 flex flex-col items-center justify-center ${
+            compact ? 'px-10 pb-2' : 'px-16 sm:px-24 pb-6'
+          }`}
+        >
+          <p
+            className={`font-bold text-luxe-text leading-none ${
+              compact ? 'text-lg' : 'text-3xl sm:text-4xl'
+            }`}
+          >
+            {total}
+          </p>
+          <p
+            className={`text-luxe-muted mt-1 truncate max-w-full text-center ${
+              compact ? 'text-[9px]' : 'text-xs mt-1.5'
+            }`}
+            title="Total received/accepted"
+          >
+            Total received/accepted
+          </p>
+        </div>
+      </div>
+      {rows.length > 0 ? (
+        <div
+          className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 shrink-0 ${
+            compact ? 'pt-0.5' : 'pt-1'
+          }`}
+        >
+          {rows.map((entry) => (
+            <div
+              key={entry.name}
+              className={`flex items-center gap-1.5 text-gray-600 ${
+                compact ? 'text-[9px]' : 'text-xs'
+              }`}
+            >
+              <span
+                className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span
+                className="truncate max-w-[12rem]"
+                title={`${entry.name} · ${entry.value}`}
+              >
+                {entry.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p
+          className={`text-gray-500 text-center shrink-0 ${
+            compact ? 'text-[9px]' : 'text-sm'
+          }`}
+        >
+          No insurance type mix for this month.
+        </p>
+      )}
     </div>
   )
 }
@@ -809,6 +996,14 @@ function HouseBlock({
             />
           </div>
         </section>
+
+        <ChartCard title="Insurance Type Mix" compact={compact}>
+          <TypeMixChart
+            key={compact ? 'type-mix-print' : 'type-mix-screen'}
+            data={house.typeMix}
+            compact={compact}
+          />
+        </ChartCard>
       </div>
     </div>
   )
@@ -822,6 +1017,8 @@ export default function BranchComparison() {
   const [error, setError] = useState('')
   const [houses, setHouses] = useState([])
   const [referrals, setReferrals] = useState([])
+  const [insurances, setInsurances] = useState([])
+  const [types, setTypes] = useState([])
 
   const [selectedLocation, setSelectedLocation] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('')
@@ -832,12 +1029,15 @@ export default function BranchComparison() {
     setLoading(true)
     setError('')
     try {
-      const [housesData, referralsData] = await Promise.all([
+      const [housesData, referralsData, insurancesData] = await Promise.all([
         apiRequest('/api/houses'),
         apiRequest('/api/referrals?all=1'),
+        apiRequest('/api/insurances'),
       ])
       setHouses(housesData.houses || [])
       setReferrals(referralsData.referrals || [])
+      setInsurances(insurancesData.insurances || [])
+      setTypes(insurancesData.types || [])
     } catch (err) {
       setError(err.message || 'Failed to load branch comparison data')
     } finally {
@@ -921,6 +1121,22 @@ export default function BranchComparison() {
 
   const monthRangeOptions = RANGE_OPTIONS.monthly
 
+  const insuranceTypeById = useMemo(() => {
+    const map = {}
+    insurances.forEach((ins) => {
+      if (ins?.id) map[ins.id] = ins.typeId || ''
+    })
+    return map
+  }, [insurances])
+
+  const typeNameById = useMemo(() => {
+    const map = {}
+    types.forEach((type) => {
+      if (type?.id) map[type.id] = type
+    })
+    return map
+  }, [types])
+
   const houseBlocks = useMemo(() => {
     if (!selectedMonth || !locationHouses.length) return []
 
@@ -994,6 +1210,12 @@ export default function BranchComparison() {
           isGreen,
           color: isGreen ? '#2F6B4F' : '#B42318',
         },
+        typeMix: buildTypeMixData(
+          houseRefs,
+          currentSet,
+          insuranceTypeById,
+          typeNameById
+        ),
         insuranceChart: {
           data: insuranceData,
           months: chartMonths,
@@ -1008,6 +1230,8 @@ export default function BranchComparison() {
     selectedMonth,
     previousMonth,
     chartMonths,
+    insuranceTypeById,
+    typeNameById,
   ])
 
   const printMonthLabel = selectedMonth
