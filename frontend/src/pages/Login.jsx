@@ -46,7 +46,7 @@ export default function Login() {
             Login
           </h1>
           <p className="mt-3 text-[13px] leading-relaxed text-luxe-muted">
-            Multi-location discharge tracking
+            Multi-location luxe score card
           </p>
 
           <div className="mt-7">

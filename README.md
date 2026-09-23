@@ -55,11 +55,11 @@ On live, set `VITE_API_URL` to your backend URL (no trailing slash), then rebuil
 
 | Role        | Email              | Password     |
 |-------------|--------------------|--------------|
-| Super Admin | admin@rms.com      | Admin@123    |
-| Illinois    | illinois@rms.com   | Illinois@123 |
-| Indiana     | indiana@rms.com    | Indiana@123  |
-| Missouri    | missouri@rms.com   | Missouri@123 |
-| Oklahoma    | oklahoma@rms.com   | Oklahoma@123 |
+| Super Admin | admin@luxehh.com     | Admin@123    |
+| Illinois    | illinois@luxehh.com   | Illinois@123 |
+| Indiana     | indiana@luxehh.com    | Indiana@123  |
+| Missouri    | missouri@luxehh.com   | Missouri@123 |
+| Oklahoma    | oklahoma@luxehh.com   | Oklahoma@123 |
 
 ## Routes
 
