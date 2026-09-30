@@ -123,6 +123,8 @@ function buildReferralPayload(house, month, reasons, insurancesForLocation) {
     houseName: house.name,
     location: house.location,
     month,
+    // Legacy monthly seed: one synthetic week key per month (1st of month)
+    week: `${month}-01`,
     totalDischarge,
     dischargeWithHomeHealth: adjustedHomeHealth || dischargeWithHomeHealth,
     notAbleToAccept,

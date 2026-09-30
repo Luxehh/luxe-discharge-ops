@@ -8,6 +8,7 @@ function format(referral) {
     houseName: referral.houseName,
     location: referral.location,
     month: referral.month,
+    week: referral.week || '',
     totalDischarge: Number(referral.totalDischarge) || 0,
     dischargeWithHomeHealth: Number(referral.dischargeWithHomeHealth) || 0,
     notAbleToAccept: (referral.notAbleToAccept || []).map((row) => ({
@@ -25,11 +26,22 @@ function format(referral) {
   }
 }
 
-function getByHouseAndMonth(houseId, month) {
+function getByHouseAndWeek(houseId, week) {
   const referral = referrals.find(
-    (r) => r.houseId === String(houseId) && r.month === month
+    (r) => r.houseId === String(houseId) && r.week === String(week)
   )
   return referral ? format(referral) : null
+}
+
+function getByHouseAndMonth(houseId, month) {
+  const list = listByHouseAndMonth(houseId, month)
+  return list.length === 1 ? list[0] : null
+}
+
+function listByHouseAndMonth(houseId, month) {
+  return referrals
+    .filter((r) => r.houseId === String(houseId) && r.month === String(month))
+    .map(format)
 }
 
 function listByMonth(month) {
@@ -50,6 +62,7 @@ function upsert({
   houseName,
   location,
   month,
+  week,
   totalDischarge,
   dischargeWithHomeHealth,
   notAbleToAccept,
@@ -61,11 +74,18 @@ function upsert({
     throw err
   }
 
+  if (!week) {
+    const err = new Error('Week is required')
+    err.status = 400
+    throw err
+  }
+
   const payload = {
     houseId: String(houseId),
     houseName,
     location,
     month,
+    week: String(week),
     totalDischarge: Number(totalDischarge) || 0,
     dischargeWithHomeHealth: Number(dischargeWithHomeHealth) || 0,
     notAbleToAccept: notAbleToAccept || [],
@@ -73,7 +93,7 @@ function upsert({
   }
 
   const index = referrals.findIndex(
-    (r) => r.houseId === payload.houseId && r.month === payload.month
+    (r) => r.houseId === payload.houseId && r.week === payload.week
   )
 
   if (index === -1) {
@@ -87,7 +107,9 @@ function upsert({
 }
 
 module.exports = {
+  getByHouseAndWeek,
   getByHouseAndMonth,
+  listByHouseAndMonth,
   listByMonth,
   listByYear,
   getAll,

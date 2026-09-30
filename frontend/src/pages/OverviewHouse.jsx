@@ -85,8 +85,13 @@ export default function OverviewHouse() {
         const data = await apiRequest(
           `/api/referrals?houseId=${encodeURIComponent(houseId)}&month=${encodeURIComponent(month)}`
         )
-        setReferral(data.referral || null)
-        if (!data.referral) {
+        const houseRefs = data.referrals?.length
+          ? data.referrals
+          : data.referral
+            ? [data.referral]
+            : []
+        setReferral(mergeReferrals(houseRefs))
+        if (!houseRefs.length) {
           setError(
             `No discharge details found for this house and ${periodLabel}.`
           )

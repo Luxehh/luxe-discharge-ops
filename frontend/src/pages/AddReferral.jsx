@@ -6,6 +6,10 @@ import MonthPicker, { currentMonthValue } from '../components/MonthPicker'
 import PageShell from '../components/PageShell'
 import ReasonFormModal from '../components/ReasonFormModal'
 import InsuranceFormModal from '../components/InsuranceFormModal'
+import {
+  defaultWeekForMonth,
+  weeksForMonth,
+} from '../utils/weeks'
 
 function newRowId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -64,6 +68,13 @@ export default function AddReferral() {
 
   const [houseId, setHouseId] = useState(searchParams.get('houseId') || '')
   const [month, setMonth] = useState(searchParams.get('month') || currentMonthValue())
+  const [week, setWeek] = useState(
+    () =>
+      searchParams.get('week') ||
+      defaultWeekForMonth(
+        searchParams.get('month') || currentMonthValue()
+      )
+  )
   const [totalDischarge, setTotalDischarge] = useState('')
   const [dischargeWithHomeHealth, setDischargeWithHomeHealth] = useState('')
   const [notAbleRows, setNotAbleRows] = useState([emptyReasonRow()])
@@ -107,18 +118,16 @@ export default function AddReferral() {
   const homeHealthMismatch =
     homeHealth > 0 && notAbleTotal + ableTotal !== homeHealth
 
-  const splitMismatch = ableRows.some((row) => {
-    if (!row.insuranceId && toNumber(row.count) === 0) return false
-    const total = toNumber(row.count)
-    const accepted = toNumber(row.accepted)
-    const notAdmitted = toNumber(row.notAdmitted)
-    return accepted + notAdmitted !== total
-  })
+  const weekOptions = useMemo(() => weeksForMonth(month), [month])
+
+  useEffect(() => {
+    setWeek((current) => defaultWeekForMonth(month, current))
+  }, [month])
 
   const canSave =
     !!selectedHouse &&
     !!month &&
-    !splitMismatch &&
+    !!week &&
     ableRows.every((row) => {
       if (!row.insuranceId && toNumber(row.count) === 0) return true
       return !!row.insuranceId
@@ -201,14 +210,14 @@ export default function AddReferral() {
   }, [])
 
   const loadRecord = useCallback(async () => {
-    if (!houseId || !month) return
+    if (!houseId || !week) return
 
     setLoadingRecord(true)
     setError('')
     setSuccess('')
     try {
       const data = await apiRequest(
-        `/api/referrals?houseId=${encodeURIComponent(houseId)}&month=${encodeURIComponent(month)}`
+        `/api/referrals?houseId=${encodeURIComponent(houseId)}&week=${encodeURIComponent(week)}`
       )
       applyRecord(data.referral)
     } catch (err) {
@@ -217,7 +226,7 @@ export default function AddReferral() {
     } finally {
       setLoadingRecord(false)
     }
-  }, [houseId, month, applyRecord])
+  }, [houseId, week, applyRecord])
 
   useEffect(() => {
     loadRecord()
@@ -231,51 +240,21 @@ export default function AddReferral() {
 
   const updateAbleCount = (key, value) => {
     setAbleRows((rows) =>
-      rows.map((row) => {
-        if (row.key !== key) return row
-        const total = toNumber(value)
-        const accepted = toNumber(row.accepted)
-        const clampedAccepted = Math.min(accepted, total)
-        return {
-          ...row,
-          count: value,
-          accepted: clampedAccepted === 0 && value === '' ? '' : String(clampedAccepted || ''),
-          notAdmitted:
-            value === '' && row.accepted === ''
-              ? ''
-              : String(Math.max(0, total - clampedAccepted)),
-        }
-      })
+      rows.map((row) => (row.key === key ? { ...row, count: value } : row))
     )
   }
 
   const updateAccepted = (key, value) => {
     setAbleRows((rows) =>
-      rows.map((row) => {
-        if (row.key !== key) return row
-        const total = toNumber(row.count)
-        const accepted = Math.min(toNumber(value), total)
-        return {
-          ...row,
-          accepted: value === '' ? '' : String(accepted),
-          notAdmitted: String(Math.max(0, total - accepted)),
-        }
-      })
+      rows.map((row) => (row.key === key ? { ...row, accepted: value } : row))
     )
   }
 
   const updateNotAdmitted = (key, value) => {
     setAbleRows((rows) =>
-      rows.map((row) => {
-        if (row.key !== key) return row
-        const total = toNumber(row.count)
-        const notAdmitted = Math.min(toNumber(value), total)
-        return {
-          ...row,
-          notAdmitted: value === '' ? '' : String(notAdmitted),
-          accepted: String(Math.max(0, total - notAdmitted)),
-        }
-      })
+      rows.map((row) =>
+        row.key === key ? { ...row, notAdmitted: value } : row
+      )
     )
   }
 
@@ -353,6 +332,7 @@ export default function AddReferral() {
         houseName: selectedHouse.name,
         location: selectedHouse.location,
         month,
+        week,
         totalDischarge: toNumber(totalDischarge),
         dischargeWithHomeHealth: toNumber(dischargeWithHomeHealth),
         notAbleToAccept: notAbleRows
@@ -399,7 +379,7 @@ export default function AddReferral() {
     return (
       <PageShell
         title="Add Referral Details"
-        subtitle="Monthly entry — pick a facility and month, then fill in the discharge funnel."
+        subtitle="Weekly entry — pick a facility, month, and week, then fill in the discharge funnel."
       >
         <div className="py-10 text-center text-gray-500">Loading referral form...</div>
       </PageShell>
@@ -410,7 +390,7 @@ export default function AddReferral() {
     <>
     <PageShell
       title="Add Referral Details"
-      subtitle="Monthly entry — pick a facility and month, then fill in the discharge funnel."
+      subtitle="Weekly entry — pick a facility, month, and week, then fill in the discharge funnel."
     >
       {error && (
         <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
@@ -424,7 +404,7 @@ export default function AddReferral() {
       )}
 
       <div className="space-y-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Facility
@@ -452,11 +432,30 @@ export default function AddReferral() {
             </label>
             <MonthPicker value={month} onChange={setMonth} />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Week
+            </label>
+            <select
+              value={week}
+              onChange={(e) => setWeek(e.target.value)}
+              disabled={!weekOptions.length}
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy disabled:bg-gray-50"
+            >
+              {!weekOptions.length && <option value="">No weeks</option>}
+              {weekOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {loadingRecord ? (
           <div className="p-8 text-center text-gray-500 rounded-xl border border-gray-200">
-            Loading month record...
+            Loading week record...
           </div>
         ) : (
           <>
@@ -653,13 +652,6 @@ export default function AddReferral() {
                 {ableTotal}) = {notAbleTotal + ableTotal}, which doesn&apos;t match
                 Discharge with Home Health ({homeHealth}). You can still save —
                 just double-check the numbers.
-              </div>
-            )}
-
-            {splitMismatch && (
-              <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-                Received/Accepted + Not Admitted must equal Able to Accept for each
-                insurance. Fix the counts below before saving.
               </div>
             )}
 

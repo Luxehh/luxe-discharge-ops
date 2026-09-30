@@ -14,6 +14,7 @@ const insurancesRoutes = require('./routes/insurances')
 const housesRoutes = require('./routes/houses')
 const referralsRoutes = require('./routes/referrals')
 const adminRoutes = require('./routes/admin')
+const Referral = require('./models/Referral')
 const {
   ensureSeedUsers,
   ensureSeedReasons,
@@ -209,6 +210,13 @@ function tryConnectMongo() {
     .then(async () => {
       db.setConnected(true)
       console.log('MongoDB connected')
+      try {
+        // Drop legacy unique houseId+month so multiple weeks per month are allowed
+        await Referral.collection.dropIndex('houseId_1_month_1').catch(() => {})
+        await Referral.syncIndexes()
+      } catch (indexErr) {
+        console.warn('Referral index sync:', indexErr.message)
+      }
       await ensureSeedUsers()
       await ensureSeedReasons()
       await ensureSeedInsurances()

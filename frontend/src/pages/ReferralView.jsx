@@ -4,6 +4,7 @@ import { apiRequest } from '../utils/api'
 import { formatMonthLabel } from '../components/MonthPicker'
 import PageShell from '../components/PageShell'
 import ReferralFunnelSummary from '../components/ReferralFunnelSummary'
+import { mergeReferrals } from '../utils/funnelStats'
 
 const PERIODS = ['Monthly', 'Yearly']
 
@@ -58,11 +59,14 @@ export default function ReferralView() {
         apiRequest('/api/reasons'),
       ])
 
-      if (!referralData.referral) {
+      if (!referralData.referrals?.length && !referralData.referral) {
         setError('No discharge details found for this house and month.')
         setReferral(null)
       } else {
-        setReferral(referralData.referral)
+        const list = referralData.referrals?.length
+          ? referralData.referrals
+          : [referralData.referral]
+        setReferral(mergeReferrals(list))
       }
       setReasons(reasonsData.reasons || [])
     } catch (err) {
