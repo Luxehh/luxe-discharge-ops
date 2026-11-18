@@ -39,23 +39,31 @@ function RateText({ part, whole, showDashWhenZeroWhole = false, bold = false }) 
   )
 }
 
-function SummaryCard({ label, value, subPart, subWhole }) {
+function MetricHalf({ label, value, subLabel, subPart, subWhole }) {
   const hasSub = subPart != null && subWhole != null
   const subValue = hasSub ? pctValue(subPart, subWhole) : null
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3.5">
+    <div className="flex-1 min-w-0 px-4 py-3.5">
       <p className="text-xs text-gray-500 font-medium">{label}</p>
-      <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-        <p className="text-2xl font-bold text-gray-900 leading-none">{value}</p>
-        {hasSub ? (
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${rateBgClass(subValue)} ${rateColorClass(subValue)}`}
-          >
-            {pct(subPart, subWhole)}
-          </span>
-        ) : null}
-      </div>
+      <p className="mt-1.5 text-2xl font-bold text-gray-900 leading-none">{value}</p>
+      {hasSub ? (
+        <p className={`mt-1.5 text-xs font-medium ${rateColorClass(subValue)}`}>
+          {pct(subPart, subWhole)}
+          {subLabel ? ` ${subLabel}` : ''}
+        </p>
+      ) : subLabel ? (
+        <p className="mt-1.5 text-xs font-medium text-gray-500">{subLabel}</p>
+      ) : null}
+    </div>
+  )
+}
+
+function SummaryPairCard({ left, right }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex divide-x divide-gray-200">
+      <MetricHalf {...left} />
+      <MetricHalf {...right} />
     </div>
   )
 }
@@ -217,27 +225,36 @@ export default function ReferralFunnelSummary({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        <SummaryCard label="DC Total" value={totalDischarge} />
-        <SummaryCard label="DC with HH" value={dischargeWithHomeHealth} />
-        <SummaryCard label="Not Able to Accept" value={notAbleTotal} />
-        <SummaryCard
-          label="Able to Accept"
-          value={ableTotal}
-          subPart={ableTotal}
-          subWhole={dischargeWithHomeHealth}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <SummaryPairCard
+          left={{ label: 'DC Total', value: totalDischarge }}
+          right={{ label: 'DC with HH', value: dischargeWithHomeHealth }}
         />
-        <SummaryCard
-          label="Received/Accepted"
-          value={acceptedTotal}
-          subPart={acceptedTotal}
-          subWhole={ableTotal}
+        <SummaryPairCard
+          left={{ label: 'Not Able to Accept', value: notAbleTotal }}
+          right={{
+            label: 'Able to Accept',
+            value: ableTotal,
+            subPart: ableTotal,
+            subWhole: dischargeWithHomeHealth,
+            subLabel: 'of DC with HH',
+          }}
         />
-        <SummaryCard
-          label="Not Admitted"
-          value={notAdmittedTotal}
-          subPart={notAdmittedTotal}
-          subWhole={acceptedTotal}
+        <SummaryPairCard
+          left={{
+            label: 'Received/Accepted',
+            value: acceptedTotal,
+            subPart: acceptedTotal,
+            subWhole: ableTotal,
+            subLabel: 'of able',
+          }}
+          right={{
+            label: 'Not Admitted',
+            value: notAdmittedTotal,
+            subPart: notAdmittedTotal,
+            subWhole: acceptedTotal,
+            subLabel: 'of accepted',
+          }}
         />
       </div>
 
