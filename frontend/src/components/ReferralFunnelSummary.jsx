@@ -68,6 +68,30 @@ function SummaryPairCard({ left, right }) {
   )
 }
 
+function isMedicareName(name) {
+  return String(name || '').trim().toLowerCase() === 'medicare'
+}
+
+function MedicareStatBlock({ label, value, subPart, subWhole, subLabel }) {
+  const rate = pctValue(subPart, subWhole)
+
+  return (
+    <div className="bg-white/15 backdrop-blur-sm rounded-lg px-3 py-2.5 min-w-0 flex-1 border border-white/20">
+      <p className="text-[11px] font-medium text-white/80 truncate">{label}</p>
+      <div className="mt-1 flex items-baseline gap-2 flex-wrap">
+        <p className="text-xl font-bold text-white leading-none">{value}</p>
+        <p className="text-xs font-semibold text-white/90">
+          {pct(subPart, subWhole)}
+          {subLabel ? (
+            <span className="font-medium text-white/70"> {subLabel}</span>
+          ) : null}
+        </p>
+      </div>
+      <span className="sr-only">{rate.toFixed(1)} percent</span>
+    </div>
+  )
+}
+
 function SectionTable({
   title,
   total,
@@ -178,6 +202,11 @@ export default function ReferralFunnelSummary({
   const acceptedTotal = ableRows.reduce((sum, row) => sum + row.accepted, 0)
   const notAdmittedTotal = ableRows.reduce((sum, row) => sum + row.notAdmitted, 0)
 
+  const medicareRow = ableRows.find((row) => isMedicareName(row.insuranceName))
+  const medicareAble = Number(medicareRow?.count) || 0
+  const medicareAccepted = Number(medicareRow?.accepted) || 0
+  const medicareNotAdmitted = Number(medicareRow?.notAdmitted) || 0
+
   const notAbleTableRows = notAbleRows.map((row) => {
     const reason = reasons.find((r) => r.id === row.reasonId)
     return {
@@ -216,13 +245,40 @@ export default function ReferralFunnelSummary({
   return (
     <div className="w-full space-y-5">
       <div className="bg-navy text-white rounded-xl px-5 py-4">
-        <h3 className="text-lg font-bold">
-          {houseName}
-          {location ? `, ${location}` : ''}
-        </h3>
-        <p className="text-sm text-white/80 mt-0.5">
-          Discharge funnel{monthLabel ? ` · ${monthLabel}` : ''}
-        </p>
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+          <div className="min-w-0 lg:flex-shrink-0">
+            <h3 className="text-lg font-bold">
+              {houseName}
+              {location ? `, ${location}` : ''}
+            </h3>
+            <p className="text-sm text-white/80 mt-0.5">
+              Discharge funnel{monthLabel ? ` · ${monthLabel}` : ''}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:flex-1">
+            <MedicareStatBlock
+              label="Medicare Able to Accept"
+              value={medicareAble}
+              subPart={medicareAble}
+              subWhole={ableTotal}
+              subLabel="of able"
+            />
+            <MedicareStatBlock
+              label="Medicare Received/Accepted"
+              value={medicareAccepted}
+              subPart={medicareAccepted}
+              subWhole={medicareAble}
+              subLabel="of Medicare able"
+            />
+            <MedicareStatBlock
+              label="Medicare Not Admitted"
+              value={medicareNotAdmitted}
+              subPart={medicareNotAdmitted}
+              subWhole={medicareAccepted}
+              subLabel="of Medicare accepted"
+            />
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
